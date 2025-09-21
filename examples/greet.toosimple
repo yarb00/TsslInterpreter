@@ -1,9 +1,0 @@
-!TooSimpleScriptingLanguage 0.2
-
-# https://yarb00.dev
-
-print line> Hello! What's your name?
-print> Your name:
-ask line value> name
-print value> name
-print line> , nice too meet you!

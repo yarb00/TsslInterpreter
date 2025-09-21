@@ -1,7 +1,7 @@
 <NotepadPlus>
     <UserLang name="TooSimpleScriptingLanguage" ext="toosimple" udlVersion="2.1">
         <Settings>
-            <Global caseIgnored="no" allowFoldOfComments="no" foldCompact="no" forcePureLC="1" decimalSeparator="0" />
+            <Global caseIgnored="yes" allowFoldOfComments="no" foldCompact="no" forcePureLC="1" decimalSeparator="0" />
             <Prefix Keywords1="no" Keywords2="no" Keywords3="no" Keywords4="no" Keywords5="no" Keywords6="no" Keywords7="no" Keywords8="no" />
         </Settings>
         <KeywordLists>
@@ -24,7 +24,7 @@
             <Keywords name="Folders in comment, open"></Keywords>
             <Keywords name="Folders in comment, middle"></Keywords>
             <Keywords name="Folders in comment, close"></Keywords>
-            <Keywords name="Keywords1">&quot;print&quot;&#x000D;&#x000A;&quot;print value&quot;&#x000D;&#x000A;&quot;print line&quot;&#x000D;&#x000A;&quot;print line value&quot;&#x000D;&#x000A;&quot;ask line value&quot;&#x000D;&#x000A;&quot;execute process&quot;&#x000D;&#x000A;&quot;execute process wait&quot;</Keywords>
+            <Keywords name="Keywords1">&quot;debug print values&quot;&#x000D;&#x000A;&quot;debug print language version&quot;&#x000D;&#x000A;&quot;debug print interpreter version&quot;&#x000D;&#x000A;&quot;debug print interpreter name&quot;&#x000D;&#x000A;&quot;set value&quot;&#x000D;&#x000A;&quot;print &quot;&#x000D;&#x000A;&quot;print value&quot;&#x000D;&#x000A;&quot;print line&quot;&#x000D;&#x000A;&quot;print value line&quot;&#x000D;&#x000A;&quot;ask value line&quot;&#x000D;&#x000A;&quot;execute process&quot;&#x000D;&#x000A;&quot;execute process value&quot;&#x000D;&#x000A;&quot;execute process wait&quot;&#x000D;&#x000A;&quot;execute process value wait&quot;</Keywords>
             <Keywords name="Keywords2"></Keywords>
             <Keywords name="Keywords3"></Keywords>
             <Keywords name="Keywords4"></Keywords>

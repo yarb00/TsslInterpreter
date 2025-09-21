@@ -1,0 +1,7 @@
+!TooSimpleScriptingLanguage 0.2
+
+# https://github.com/yarb00/TsslInterpreter
+
+# Script using TSSL v0.2 still works with TsslInterpreter v0.3!
+
+print> Yes, I do work!

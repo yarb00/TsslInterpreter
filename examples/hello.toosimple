@@ -1,0 +1,17 @@
+!TooSimpleScriptingLanguage 0.3
+
+# https://github.com/yarb00/TsslInterpreter
+
+print line> Hello! What's your name?
+
+print> Your name:
+ask value line> name
+
+print value> name
+print line> , nice to meet you! 
+
+print> Your age?:
+ask value line> age
+
+print value> age
+print line> years? ok :D
