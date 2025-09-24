@@ -1,4 +1,4 @@
-!TooSimpleScriptingLanguage 0.3
+!TooSimpleScriptingLanguage 0.4
 
 # https://github.com/yarb00/TsslInterpreter
 
@@ -15,3 +15,6 @@ ask value line> age
 
 print value> age
 print line> years? ok :D
+
+print line> Now press any key to exit.
+ask pause>

@@ -8,9 +8,9 @@ namespace TsslInterpreter;
 
 internal sealed partial class ScriptEnvironment
 {
-	private sealed class ScriptEnvironmentV0_3(int currentLine) : VersionedScriptEnvironment(currentLine)
+	private sealed class ScriptEnvironmentV0_4(int currentLine) : VersionedScriptEnvironment(currentLine)
 	{
-		protected override string LanguageVersion => "0.3";
+		protected override string LanguageVersion => "0.4";
 
 		private readonly Dictionary<string, string> valueByName = [];
 		private Dictionary<string, Action<string>> ActionByCommandName => new() // It's a field because property initializers don't like non-static references
@@ -19,11 +19,13 @@ internal sealed partial class ScriptEnvironment
 			["debug print language version"] = DebugPrintLanguageVersion,
 			["debug print interpreter version"] = DebugPrintInterpreterVersion,
 			["debug print interpreter name"] = DebugPrintInterpreterName,
-			["set value"] = SetValue,
+			["set value line"] = SetValueLine,
+			["set value join"] = SetValueJoin,
 			["print"] = Print,
 			["print value"] = PrintValue,
 			["print line"] = PrintLine,
 			["print value line"] = PrintValueLine,
+			["ask pause"] = AskPause,
 			["ask value line"] = AskValueLine,
 			["execute process"] = ExecuteProcess,
 			["execute process value"] = ExecuteProcessValue,
@@ -38,15 +40,17 @@ internal sealed partial class ScriptEnvironment
 			if (instruction.IsNullOrWhiteSpace() || instruction.StartsWith('#')) return;
 			if (!instruction.Contains('>')) Error(CodeError.InvalidInstruction);
 
+			if (instruction.Length > instruction.IndexOf('>') + 1 && instruction[instruction.IndexOf('>') + 1] != ' ') // If character after '>' is not space
+				Error(CodeError.InvalidInstruction); // Require separating arguments with space
+
 			string commandName = instruction[..instruction.IndexOf('>')].Trim().ToLowerInvariant(), commandArguments = string.Empty;
 
-			if (!commandName.IsAlphaNumericWithSpaces()) Error(CodeError.Other);
+			if (!commandName.IsAlphaNumericWithSpaces()) Error(CodeError.InvalidCommandName);
 
 			if (instruction.Length > instruction.IndexOf('>') + 1 + 1) commandArguments = instruction[(instruction.IndexOf('>') + 1 + 1)..];
-			else if (instruction.Length == instruction.IndexOf('>') + 1 + 1) Error(CodeError.Other); // Do not allow trailing space
 
 			if (ActionByCommandName.TryGetValue(commandName, out Action<string>? action)) action(commandArguments);
-			else Error(CodeError.Other);
+			else Error(CodeError.CommandNotFound);
 		}
 
 		#region Code handlers
@@ -55,22 +59,22 @@ internal sealed partial class ScriptEnvironment
 
 		private void DebugPrintValues(string _)
 		{
-			if (!_.IsNullOrWhiteSpace()) Error(CodeError.Other);
+			if (!_.IsNullOrWhiteSpace()) Error(CodeError.NoArgumentsRequired);
 			foreach ((string key, string value) in valueByName) PrintLine($"[\"{key}\"] = [\"{value}\"];");
 		}
 		private void DebugPrintLanguageVersion(string _)
 		{
-			if (!_.IsNullOrWhiteSpace()) Error(CodeError.Other);
+			if (!_.IsNullOrWhiteSpace()) Error(CodeError.NoArgumentsRequired);
 			Print(LanguageVersion);
 		}
 		private void DebugPrintInterpreterVersion(string _)
 		{
-			if (!_.IsNullOrWhiteSpace()) Error(CodeError.Other);
+			if (!_.IsNullOrWhiteSpace()) Error(CodeError.NoArgumentsRequired);
 			Print(Program.Version?.ToString(3) ?? "null");
 		}
 		private void DebugPrintInterpreterName(string _)
 		{
-			if (!_.IsNullOrWhiteSpace()) Error(CodeError.Other);
+			if (!_.IsNullOrWhiteSpace()) Error(CodeError.NoArgumentsRequired);
 			Print(Program.Name);
 		}
 
@@ -78,16 +82,34 @@ internal sealed partial class ScriptEnvironment
 
 		#region set ...
 
-		private void SetValue(string arguments)
+		private void SetValueLine(string arguments)
 		{
-			if (!arguments.Contains(';') || !(arguments.Length > arguments.IndexOf(';') + 1)) Error(CodeError.Other);
+			if (!arguments.Contains(';') || !(arguments.Length > arguments.IndexOf(';') + 1)) Error(CodeError.InvalidArguments);
 
 			string valueName = arguments[..arguments.IndexOf(';')], valueContent = arguments[(arguments.IndexOf(';') + 1)..];
 
-			if (valueName.IsNullOrWhiteSpace()) Error(CodeError.Other);
-			if (!valueName.IsAlphaNumericWithUnderscores()) Error(CodeError.Other);
+			if (valueName.IsNullOrWhiteSpace()) Error(CodeError.InvalidArguments);
+			if (!valueName.IsAlphaNumericWithUnderscores()) Error(CodeError.InvalidValueName);
 
 			valueByName[valueName] = valueContent;
+		}
+
+		private void SetValueJoin(string arguments)
+		{
+			if (!arguments.Contains(';') || !(arguments.Length > arguments.LastIndexOf(';') + 1)) Error(CodeError.InvalidArguments);
+
+			string[] values = arguments.Split(';', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries);
+			if (values.Length < 2) Error(CodeError.InvalidArguments);
+
+			string receiverValue = values[0], resultString = string.Empty;
+			if (!receiverValue.IsAlphaNumericWithUnderscores()) Error(CodeError.InvalidValueName);
+
+			foreach (string senderValue in values[1..])
+				if (!senderValue.IsAlphaNumericWithUnderscores()) Error(CodeError.InvalidValueName);
+				else if (!valueByName.TryGetValue(senderValue, out string? senderValueContent)) Error(CodeError.ValueNotFound);
+				else resultString += senderValueContent;
+
+			SetValueLine($"{receiverValue};{resultString}");
 		}
 
 		#endregion
@@ -96,13 +118,14 @@ internal sealed partial class ScriptEnvironment
 
 		private void Print(string text)
 		{
-			if (text.IsNullOrEmpty()) Error(CodeError.Other);
+			if (text.IsNullOrEmpty()) Error(CodeError.ArgumentsRequired);
 			else Console.Write(text);
 		}
 
 		private void PrintValue(string valueName)
 		{
-			if (valueName.IsNullOrWhiteSpace() || !valueByName.TryGetValue(valueName, out string? value)) Error(CodeError.Other);
+			if (valueName.IsNullOrWhiteSpace()) Error(CodeError.InvalidValueName);
+			else if (!valueByName.TryGetValue(valueName, out string? value)) Error(CodeError.ValueNotFound);
 			else Print(value);
 		}
 
@@ -114,7 +137,8 @@ internal sealed partial class ScriptEnvironment
 
 		private void PrintValueLine(string valueName)
 		{
-			if (valueName.IsNullOrWhiteSpace() || !valueByName.TryGetValue(valueName, out string? value)) Error(CodeError.Other);
+			if (valueName.IsNullOrWhiteSpace()) Error(CodeError.InvalidValueName);
+			else if (!valueByName.TryGetValue(valueName, out string? value)) Error(CodeError.ValueNotFound);
 			else PrintLine(value);
 		}
 
@@ -122,11 +146,17 @@ internal sealed partial class ScriptEnvironment
 
 		#region ask ...
 
+		private void AskPause(string _)
+		{
+			if (!_.IsNullOrWhiteSpace()) Error(CodeError.NoArgumentsRequired);
+			Console.ReadKey(false);
+		}
+
 		private void AskValueLine(string valueName)
 		{
 			string? input = Console.ReadLine();
 			if (input is null) Exit();
-			else SetValue($"{valueName};{input}");
+			else SetValueLine($"{valueName};{input}");
 		}
 
 		#endregion
@@ -150,7 +180,8 @@ internal sealed partial class ScriptEnvironment
 
 		private void ExecuteProcessValue(string valueName)
 		{
-			if (valueName.IsNullOrWhiteSpace() || !valueByName.TryGetValue(valueName, out string? value)) Error(CodeError.Other);
+			if (valueName.IsNullOrWhiteSpace()) Error(CodeError.InvalidValueName);
+			else if (!valueByName.TryGetValue(valueName, out string? value)) Error(CodeError.ValueNotFound);
 			else ExecuteProcess(value);
 		}
 
@@ -176,7 +207,8 @@ internal sealed partial class ScriptEnvironment
 
 		private void ExecuteProcessValueWait(string valueName)
 		{
-			if (valueName.IsNullOrWhiteSpace() || !valueByName.TryGetValue(valueName, out string? value)) Error(CodeError.Other);
+			if (valueName.IsNullOrWhiteSpace()) Error(CodeError.InvalidValueName);
+			else if (!valueByName.TryGetValue(valueName, out string? value)) Error(CodeError.ValueNotFound);
 			else ExecuteProcessWait(value);
 		}
 

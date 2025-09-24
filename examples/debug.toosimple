@@ -1,10 +1,10 @@
-!TooSimpleScriptingLanguage 0.3
+!TooSimpleScriptingLanguage 0.4
 
 # https://github.com/yarb00/TsslInterpreter
 
 # "print line" is a line break
 
-# TSSL version (0.3)
+# TSSL version (0.4)
 debug print language version>
 print line>
 # Interpreter version (different from language version)
@@ -15,9 +15,14 @@ debug print interpreter name>
 print line>
 
 # Setting some values:
-set value> val1;abc
-set value> val2;def
-set value> val3;123456
+# val1 = "abc"
+set value line> val1;abc
+set value line> val2;def
+set value line> val3;123456
+# val4 = val1 + val2
+set value join> val4;val1;val2
 
 # Printing all values
 debug print values>
+
+ask pause>

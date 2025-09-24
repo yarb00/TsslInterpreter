@@ -1,7 +1,7 @@
-!TooSimpleScriptingLanguage 0.3
+!TooSimpleScriptingLanguage 0.4
 
 # https://github.com/yarb00/TsslInterpreter
 
-print> Enter command you want to run:
+print> Enter the command you want to run:
 ask value line> command
 execute process value wait> command
