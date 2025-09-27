@@ -1,10 +1,10 @@
-!TooSimpleScriptingLanguage 0.4
+!TooSimpleScriptingLanguage 0.5
 
-# https://github.com/yarb00/TsslInterpreter
+# https://tssl.yarb00.dev
 
 # "print line" is a line break
 
-# TSSL version (0.4)
+# TSSL version (0.5)
 debug print language version>
 print line>
 # Interpreter version (different from language version)

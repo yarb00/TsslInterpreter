@@ -1,6 +1,6 @@
-!TooSimpleScriptingLanguage 0.4
+!TooSimpleScriptingLanguage 0.5
 
-# https://github.com/yarb00/TsslInterpreter
+# https://tssl.yarb00.dev
 
 print> Enter the command you want to run:
 ask value line> command

@@ -1,0 +1,23 @@
+!TooSimpleScriptingLanguage 0.5
+
+# https://tssl.yarb00.dev
+
+# jump> [label]
+# Skip all code until a label with the specified name is found.
+
+# jump if equals exact> [label];[value name];[value]
+# If the [value name] is [value], run "jump> [label]"; otherwise, do nothing.
+
+# jump if equals expression> [label];[value name];[regex]
+# If the [value name]'s [value] matches [regex], run "jump> [label]"; otherwise, do nothing.
+
+print> Exit (y/N)?:
+ask value line> answer
+
+jump if equals expression> continue;answer;^[yY]$
+jump> exit
+
+@continue
+print line> Hi!
+
+@exit
