@@ -11,11 +11,14 @@
 # jump if equals expression> [label];[value name];[regex]
 # If the [value name]'s [value] matches [regex], run "jump> [label]"; otherwise, do nothing.
 
+@ask
 print> Exit (y/N)?:
 ask value line> answer
 
 jump if equals expression> continue;answer;^[yY]$
-jump> exit
+jump if equals expression> exit;answer;^[nN]$
+# If answer is not 'y', 'Y', 'n' or 'N', ask again.
+jump> ask
 
 @continue
 print line> Hi!
