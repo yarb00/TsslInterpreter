@@ -1,0 +1,62 @@
+name: Build
+
+on:
+  workflow_dispatch:
+  push:
+    branches: [ "master" ]
+  pull_request:
+    branches: [ "master" ]
+
+jobs:
+  build:
+
+    strategy:
+      matrix:
+        os:
+          - runner_name: ubuntu-latest
+            dotnet_rid: linux-x64
+          - runner_name: windows-latest
+            dotnet_rid: win-x64
+        configuration:
+          - name: Debug
+            build_command: dotnet build -c Debug
+          - name: Release
+            build_command: dotnet publish -c Release
+
+    env:
+      # "dotnet_version" is 9 instead of 8, because v8 doesn't support XML solutions
+      dotnet_version: 9.0.x
+      target_framework: net8.0
+
+    runs-on: ${{ matrix.os.runner_name }}
+
+    steps:
+    - uses: actions/checkout@v4
+    - name: Setup .NET
+      uses: actions/setup-dotnet@v4
+      with:
+        dotnet-version: ${{ env.dotnet_version }}
+    - name: Restore dependencies
+      run: dotnet restore
+
+    - name: Build (Debug)
+      if: matrix.configuration.name == 'Debug'
+      run: ${{ matrix.configuration.build_command }} --no-restore
+    - name: Build (Release)
+      if: matrix.configuration.name == 'Release'
+      run: ${{ matrix.configuration.build_command }} --no-restore -r ${{ matrix.os.dotnet_rid }}
+
+    - name: Upload build artifacts (Debug)
+      if: matrix.configuration.name == 'Debug'
+      uses: actions/upload-artifact@v4
+      with:
+        name: TsslInterpreter ( ${{ matrix.configuration.name }} | ${{ matrix.os.dotnet_rid }} )
+        path: src/bin/${{ matrix.configuration.name }}/${{ env.target_framework }}
+        if-no-files-found: error
+    - name: Upload build artifacts (Release)
+      if: matrix.configuration.name == 'Release'
+      uses: actions/upload-artifact@v4
+      with:
+        name: TsslInterpreter ( ${{ matrix.configuration.name }} | ${{ matrix.os.dotnet_rid }} )
+        path: src/bin/${{ matrix.configuration.name }}/${{ env.target_framework }}/${{ matrix.os.dotnet_rid }}/publish
+        if-no-files-found: error
