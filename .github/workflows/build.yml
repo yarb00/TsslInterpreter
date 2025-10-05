@@ -75,11 +75,8 @@ jobs:
         with:
           dotnet-version: ${{ env.dotnet_version }}
 
-      - name: Restore dependencies
-        run: dotnet restore
-
       - name: Build
-        run: dotnet publish -c Release --no-restore -r ${{ matrix.os.dotnet_rid }}
+        run: dotnet publish -c Release -r ${{ matrix.os.dotnet_rid }}
 
       - name: Upload build artifacts
         uses: actions/upload-artifact@v4
