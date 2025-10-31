@@ -1,0 +1,70 @@
+# https://tssl.yarb00.dev
+
+name: Build
+
+on:
+  workflow_dispatch:
+  push:
+    branches:
+      - master
+  pull_request:
+    branches:
+      - master
+
+jobs:
+
+  debug:
+    name: Build (Debug)
+    strategy:
+      matrix:
+        os:
+          - runner_name: ubuntu-latest
+          - runner_name: windows-latest
+    runs-on: ${{ matrix.os.runner_name }}
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v5
+        with:
+          fetch-depth: 1
+      - name: Setup .NET
+        uses: actions/setup-dotnet@v5
+        with:
+          # "dotnet_version" is 9.0.x instead of 8.0.x, because SDK 8 doesn't support XML solutions (.slnx)
+          dotnet-version: 9.0.x
+      - name: Build
+        run: dotnet build
+      - name: Upload build artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: TsslInterpreter ( Debug , ${{ matrix.os.runner_name }} )
+          path: src/bin/Debug/net8.0
+          if-no-files-found: error
+
+  release:
+    name: Build (Release)
+    strategy:
+      matrix:
+        os:
+          - runner_name: ubuntu-latest
+            dotnet_rid: linux-x64
+          - runner_name: windows-latest
+            dotnet_rid: win-x64
+    runs-on: ${{ matrix.os.runner_name }}
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v5
+        with:
+          fetch-depth: 1
+      - name: Setup .NET
+        uses: actions/setup-dotnet@v5
+        with:
+          # "dotnet_version" is 9.0.x instead of 8.0.x, because SDK 8 doesn't support XML solutions (.slnx)
+          dotnet-version: 9.0.x
+      - name: Build
+        run: dotnet publish -r ${{ matrix.os.dotnet_rid }}
+      - name: Upload build artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: TsslInterpreter ( Release , ${{ matrix.os.runner_name }} , ${{ matrix.os.dotnet_rid }} )
+          path: src/bin/Release/net8.0/${{ matrix.os.dotnet_rid }}/publish
+          if-no-files-found: error
