@@ -28,7 +28,7 @@ internal sealed partial class ScriptEnvironment(string[] script)
 
 	public void ExecuteScript()
 	{
-		while (currentLine <= script.Length)
+		while (currentLine < script.Length)
 		{
 			if (executor is not null) executor.ExecuteScript(ref currentLine);
 			else

@@ -4,6 +4,8 @@ using System;
 using System.Collections.Frozen;
 using System.Collections.Generic;
 using System.Diagnostics;
+using System.Linq;
+using System.Text.RegularExpressions;
 
 namespace TsslInterpreter;
 
@@ -72,9 +74,11 @@ internal sealed partial class ScriptEnvironment
 
 		public void ExecuteScript(ref int currentLine)
 		{
+			ScanLabels();
+
 			this.currentLine = currentLine;
 
-			while (currentLine <= script.Length)
+			while (this.currentLine < script.Length)
 			{
 				this.currentLine++;
 				currentLine = this.currentLine;
@@ -82,24 +86,33 @@ internal sealed partial class ScriptEnvironment
 			}
 		}
 
+		private void ScanLabels()
+		{
+			for (int i = 0; i < script.Length; i++)
+			{
+				string instruction = script[i].TrimStart();
+
+				if (!instruction.StartsWith('@')) continue;
+
+				string label = instruction[1..].Trim();
+
+				if (!label.IsAlphaNumericWithUnderscores())
+				{
+					currentLine = i + 1; // Set current line to the line with label for proper error message in terminal
+					Error(CodeError.InvalidLabelName);
+				}
+
+				lineByLabel.Add(label, i + 1);
+			}
+		}
+
 		private void ExecuteInstruction(string instruction)
 		{
 			instruction = instruction.TrimStart();
 
-			if (instruction.IsNullOrWhiteSpace() || instruction.StartsWith('#')) return;
+			if (instruction.IsNullOrWhiteSpace() || instruction.StartsWith('#') || instruction.StartsWith('@')) return;
 
 			if (instruction.StartsWith("!TooSimpleScriptingLanguage", StringComparison.OrdinalIgnoreCase)) Error(CodeError.InvalidInstruction);
-
-			if (instruction.StartsWith('@'))
-			{
-				string label = instruction[1..].Trim();
-
-				if (!instruction.IsAlphaNumericWithSpaces()) Error(CodeError.InvalidLabelName);
-
-				lineByLabel.Add(label, currentLine);
-
-				return;
-			}
 
 			if (!instruction.Contains('>')) Error(CodeError.InvalidInstruction);
 
@@ -122,83 +135,109 @@ internal sealed partial class ScriptEnvironment
 
 		#region jump ...
 
-		private void Jump(string arguments)
+		private void Jump(string label)
 		{
-			// ...
+			if (label.IsNullOrWhiteSpace()) Error(CodeError.ArgumentsRequired);
+			else if (!lineByLabel.TryGetValue(label, out int line)) Error(CodeError.LabelNotFound);
+			else currentLine = line;
 		}
 
-		private void JumpIfEqualsExact(string arguments)
+		private void JumpIfEqualsExact(string args)
 		{
-			// ...
+			if (args.IsNullOrWhiteSpace()) Error(CodeError.ArgumentsRequired);
+
+			string[] @params = args.Split(';');
+			if (@params.Length != 3) Error(CodeError.InvalidArguments);
+			(string label, string valueName, string compareValue) = (@params[0].Trim(), @params[1].Trim(), @params[2]);
+
+			if (label.IsNullOrEmpty()) Error(CodeError.InvalidLabelName);
+			if (valueName.IsNullOrEmpty()) Error(CodeError.InvalidValueName);
+
+			if (!valueByName.TryGetValue(valueName, out string? valueContent)) Error(CodeError.ValueNotFound);
+
+			if (valueContent == compareValue) Jump(label);
 		}
 
-		private void JumpIfEqualsExpression(string arguments)
+		private void JumpIfEqualsExpression(string args)
 		{
-			// ...
+			if (args.IsNullOrWhiteSpace()) Error(CodeError.ArgumentsRequired);
+
+			string[] @params = args.Split(';');
+			if (@params.Length != 3) Error(CodeError.InvalidArguments);
+			(string label, string valueName, string expression) = (@params[0].Trim(), @params[1].Trim(), @params[2]);
+
+			if (label.IsNullOrEmpty()) Error(CodeError.InvalidLabelName);
+			if (valueName.IsNullOrEmpty()) Error(CodeError.InvalidValueName);
+
+			if (!valueByName.TryGetValue(valueName, out string? valueContent)) Error(CodeError.ValueNotFound);
+			if (valueContent is null)
+			{
+				Error();
+				return;
+			}
+
+			if (Regex.IsMatch(valueContent, expression)) Jump(label);
 		}
 
 		#endregion
 
 		#region set ...
 
-		private void SetValueLine(string arguments)
+		private void SetValueLine(string args)
 		{
-			if (!arguments.Contains(';') || !(arguments.Length > arguments.IndexOf(';') + 1)) Error(CodeError.InvalidArguments);
+			if (args.IsNullOrWhiteSpace()) Error(CodeError.ArgumentsRequired);
 
-			string valueName = arguments[..arguments.IndexOf(';')], valueContent = arguments[(arguments.IndexOf(';') + 1)..];
+			string[] @params = args.Split(';');
+			if (@params.Length != 2) Error(CodeError.InvalidArguments);
+			(string valueName, string valueContent) = (@params[0].Trim(), @params[1]);
 
-			if (valueName.IsNullOrWhiteSpace()) Error(CodeError.InvalidArguments);
-			if (!valueName.IsAlphaNumericWithUnderscores()) Error(CodeError.InvalidValueName);
+			if (valueName.IsNullOrEmpty() || !valueName.IsAlphaNumericWithUnderscores()) Error(CodeError.InvalidValueName);
 
 			valueByName[valueName] = valueContent;
 		}
 
-		private void SetValueJoin(string arguments)
+		private void SetValueJoin(string args)
 		{
-			if (!arguments.Contains(';') || !(arguments.Length > arguments.LastIndexOf(';') + 1)) Error(CodeError.InvalidArguments);
+			if (args.IsNullOrWhiteSpace()) Error(CodeError.ArgumentsRequired);
 
-			string[] values = arguments.Split(';', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries);
-			if (values.Length < 2) Error(CodeError.InvalidArguments);
+			string[] @params = args.Split(';', StringSplitOptions.TrimEntries);
+			if (@params.Contains(string.Empty) || @params.Length < 2) Error(CodeError.InvalidArguments);
 
-			string receiverValue = values[0], resultString = string.Empty;
+			string receiverValue = @params[0], result = string.Empty;
 			if (!receiverValue.IsAlphaNumericWithUnderscores()) Error(CodeError.InvalidValueName);
 
-			foreach (string senderValue in values[1..])
+			foreach (string senderValue in @params[1..])
 				if (!senderValue.IsAlphaNumericWithUnderscores()) Error(CodeError.InvalidValueName);
 				else if (!valueByName.TryGetValue(senderValue, out string? senderValueContent)) Error(CodeError.ValueNotFound);
-				else resultString += senderValueContent;
+				else result += senderValueContent;
 
-			SetValueLine($"{receiverValue};{resultString}");
+			SetValueLine($"{receiverValue};{result}");
 		}
 
 		#endregion
 
 		#region print ...
 
-		private void Print(string text)
+		private void Print(string @string)
 		{
-			if (text.IsNullOrEmpty()) Error(CodeError.ArgumentsRequired);
-			else Console.Write(text);
+			if (@string.IsNullOrEmpty()) Error(CodeError.ArgumentsRequired);
+			else Console.Write(@string);
 		}
 
 		private void PrintValue(string valueName)
 		{
-			if (valueName.IsNullOrWhiteSpace()) Error(CodeError.InvalidValueName);
-			else if (!valueByName.TryGetValue(valueName, out string? value)) Error(CodeError.ValueNotFound);
-			else Print(value);
+			if (valueName.IsNullOrWhiteSpace()) Error(CodeError.ArgumentsRequired);
+			else if (!valueByName.TryGetValue(valueName, out string? valueContent)) Error(CodeError.ValueNotFound);
+			else Print(valueContent);
 		}
 
-		private static void PrintLine(string text)
-		{
-			if (text.IsNullOrEmpty()) Console.WriteLine();
-			else Console.WriteLine(text);
-		}
+		private static void PrintLine(string @string) => Console.WriteLine(@string);
 
 		private void PrintValueLine(string valueName)
 		{
-			if (valueName.IsNullOrWhiteSpace()) Error(CodeError.InvalidValueName);
-			else if (!valueByName.TryGetValue(valueName, out string? value)) Error(CodeError.ValueNotFound);
-			else PrintLine(value);
+			if (valueName.IsNullOrWhiteSpace()) Error(CodeError.ArgumentsRequired);
+			else if (!valueByName.TryGetValue(valueName, out string? valueContent)) Error(CodeError.ValueNotFound);
+			else PrintLine(valueContent);
 		}
 
 		#endregion
@@ -224,7 +263,7 @@ internal sealed partial class ScriptEnvironment
 
 		private static void ExecuteProcess(string command)
 		{
-			if (!command.Contains(' ')) Process.Start(command);
+			if (!command.Trim().Contains(' ')) Process.Start(command);
 			else
 			{
 				int argumentsStartIndex = command.IndexOf(' ') + 1; // Index of the next character after space
@@ -239,9 +278,9 @@ internal sealed partial class ScriptEnvironment
 
 		private void ExecuteProcessValue(string valueName)
 		{
-			if (valueName.IsNullOrWhiteSpace()) Error(CodeError.InvalidValueName);
-			else if (!valueByName.TryGetValue(valueName, out string? value)) Error(CodeError.ValueNotFound);
-			else ExecuteProcess(value);
+			if (valueName.IsNullOrWhiteSpace()) Error(CodeError.ArgumentsRequired);
+			else if (!valueByName.TryGetValue(valueName, out string? valueContent)) Error(CodeError.ValueNotFound);
+			else ExecuteProcess(valueContent);
 		}
 
 		private static void ExecuteProcessWait(string command)
@@ -249,9 +288,9 @@ internal sealed partial class ScriptEnvironment
 			string fileName = command;
 			string? arguments = null;
 
-			if (command.Contains(' '))
+			if (command.Trim().Contains(' '))
 			{
-				int argumentsStartIndex = command.IndexOf(' ') + 1; // Index of the next character after space
+				int argumentsStartIndex = command.Trim().IndexOf(' ') + 1; // Index of the next character after space
 				fileName = command[..(argumentsStartIndex - 1)]; // Before space
 				arguments = command[argumentsStartIndex..]; // After space
 			}
@@ -266,9 +305,9 @@ internal sealed partial class ScriptEnvironment
 
 		private void ExecuteProcessValueWait(string valueName)
 		{
-			if (valueName.IsNullOrWhiteSpace()) Error(CodeError.InvalidValueName);
-			else if (!valueByName.TryGetValue(valueName, out string? value)) Error(CodeError.ValueNotFound);
-			else ExecuteProcessWait(value);
+			if (valueName.IsNullOrWhiteSpace()) Error(CodeError.ArgumentsRequired);
+			else if (!valueByName.TryGetValue(valueName, out string? valueContent)) Error(CodeError.ValueNotFound);
+			else ExecuteProcessWait(valueContent);
 		}
 
 		#endregion
