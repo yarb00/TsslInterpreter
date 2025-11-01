@@ -1,74 +1,62 @@
 // https://tssl.yarb00.dev
 
-using System.Collections.Generic;
+using System;
 
 namespace TsslInterpreter;
 
 internal enum CodeError
 {
-	Other,
+	Unknown,
 	InvalidInstruction,
-	InvalidCommandName, InvalidValueName,
-	CommandNotFound, ValueNotFound,
+	InvalidCommandName, InvalidValueName, InvalidLabelName,
+	CommandNotFound, ValueNotFound, LabelNotFound,
 	NoArgumentsRequired, ArgumentsRequired, InvalidArguments
 }
 
-internal abstract class VersionedScriptEnvironment(int currentLine)
+internal sealed partial class ScriptEnvironment(string[] script)
 {
-	protected abstract string LanguageVersion { get; }
-	private int CurrentLine { get; set; } = currentLine;
-
-	private readonly Dictionary<CodeError, string> errorMessageByErrorType = new()
+	private interface IScriptExecutor
 	{
-		[CodeError.Other] = "[Not present.]",
-		[CodeError.InvalidInstruction] = "Syntax error.",
-		[CodeError.InvalidCommandName] = "Command name is not valid.",
-		[CodeError.InvalidValueName] = "Value name is not valid.",
-		[CodeError.CommandNotFound] = "Specified command is not found.",
-		[CodeError.ValueNotFound] = "Specified value is not found.",
-		[CodeError.NoArgumentsRequired] = "Arguments were passed but command does not accept any.",
-		[CodeError.ArgumentsRequired] = "No arguments were passed but command requires them.",
-		[CodeError.InvalidArguments] = "Arguments are in invalid format or do not make sense."
-	};
+		void ExecuteScript(ref int currentLine);
+	}
 
-	public virtual void RunInstruction(string instruction) => CurrentLine++;
+	private IScriptExecutor? executor = null;
 
-	protected static void Panic(CriticalError error, string? message = null) => Program.Panic(error, message);
-	protected void Error(CodeError error) => Panic(CriticalError.CodeError, $"Error on line {CurrentLine}, details: {errorMessageByErrorType[error]}");
-	protected static void Exit() => Program.Exit();
-}
+	private readonly string[] script = script;
 
-internal sealed partial class ScriptEnvironment
-{
-	private VersionedScriptEnvironment? scriptEnvironment = null;
-	private int CurrentLine = 0;
+	private int currentLine = 0;
 
-	public void RunInstruction(string instruction)
+	public void ExecuteScript()
 	{
-		CurrentLine++;
-
-		if (scriptEnvironment is not null)
+		while (currentLine <= script.Length)
 		{
-			scriptEnvironment.RunInstruction(instruction);
-			return;
+			if (executor is not null) executor.ExecuteScript(ref currentLine);
+			else
+			{
+				currentLine++;
+				ExecuteInstruction(script[currentLine - 1]);
+			}
 		}
+	}
+
+	private void ExecuteInstruction(string instruction)
+	{
+		if (executor is not null) Program.Panic();
+
+		instruction = instruction.TrimStart();
 
 		if (instruction.IsNullOrWhiteSpace() || instruction.StartsWith('#')) return;
 
-		if (instruction.StartsWith("!TooSimpleScriptingLanguage"))
+		if (instruction.StartsWith("!TooSimpleScriptingLanguage", StringComparison.OrdinalIgnoreCase))
 		{
-			if (scriptEnvironment is not null) Program.Panic(CriticalError.CodeError);
-			else
+			switch (instruction[("!TooSimpleScriptingLanguage".Length + 1)..].Trim().ToLowerInvariant())
 			{
-				switch (instruction[("!TooSimpleScriptingLanguage".Length + 1)..].Trim().ToLowerInvariant())
-				{
-					case "0.3": scriptEnvironment = new ScriptEnvironmentV0_3(CurrentLine); break;
-					case "0.4": scriptEnvironment = new ScriptEnvironmentV0_4(CurrentLine); break;
-					default: Program.Panic(CriticalError.NotSupportedLanguageVersion); break;
-				}
-				return;
+				case "0.5": executor = new ScriptEnvironmentV0_5(script); break;
+
+				default: Program.Panic(CriticalError.NotSupportedLanguageVersion); break;
 			}
+			return;
 		}
-		else Program.Panic(CriticalError.CodeError);
+		else Program.Panic(CriticalError.InvalidCode);
 	}
 }
