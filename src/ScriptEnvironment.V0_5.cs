@@ -75,7 +75,7 @@ internal sealed partial class ScriptEnvironment
 
 		public void ExecuteScript(ref int currentLine)
 		{
-			ScanLabels();
+			if (lineByLabel.Count == 0) ScanLabels();
 
 			this.currentLine = currentLine;
 
@@ -103,7 +103,7 @@ internal sealed partial class ScriptEnvironment
 					Error(CodeError.InvalidLabelName);
 				}
 
-				lineByLabel.Add(label, i + 1);
+				lineByLabel[label] = i + 1; // If a label with the same name appears, override the previous one
 			}
 		}
 
