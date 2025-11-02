@@ -35,8 +35,9 @@ internal sealed partial class ScriptEnvironment
 		private readonly Dictionary<string, string> valueByName = new()
 		{
 			["_language_version"] = languageVersion,
-			["_interpreter_version"] = Program.Version?.ToString(3) ?? "null",
-			["_interpreter_name"] = Program.Name
+			["_interpreter_website"] = Program.Website,
+			["_interpreter_name"] = Program.Name,
+			["_interpreter_version"] = Program.Version?.ToString(3) ?? "null"
 		};
 
 		private FrozenDictionary<string, Action<string>> ActionByCommandName => new Dictionary<string, Action<string>>() // It's a field because property initializers don't like non-static references

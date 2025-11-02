@@ -22,11 +22,14 @@ internal enum CriticalError
 
 internal static class Program
 {
+	public const string Website = "https://tssl.yarb00.dev";
 	public const string Name = "TsslInterpreter";
-	public static readonly string Title = $"TsslInterpreter{(Version is not null ? $" v{Version.ToString(3)}" : string.Empty)}";
+	public static readonly string Title = Name + (Version is not null ? $" v{Version.ToString(3)}" : string.Empty);
 	public static readonly Version? Version = Assembly.GetExecutingAssembly().GetName().Version;
 
-	private const string updateDataUrl = "https://tssl.yarb00.dev/update/data/client/release.tssl-update-data.json";
+	private const string issueReportUrl = $"{Website}/issue/report/client/?title={{ISSUE_TITLE}}&body={{ISSUE_BODY}}";
+	private const string updateDataUrl = $"{Website}/update/data/client/{{UPDATE_CHANNEL}}.tssl-update-data.json";
+	private const string updateChannel = "release";
 
 	private static readonly Dictionary<CriticalError, (string errorMessage, int exitCode)> errorDataByErrorType = new()
 	{
@@ -73,8 +76,6 @@ internal static class Program
 
 	private static void HandleUnhandledException(Exception e)
 	{
-		static string Linkify(string text) => Uri.EscapeDataString(text);
-
 		static string GetOSData() => RuntimeInformation.OSDescription;
 
 		string
@@ -102,7 +103,9 @@ internal static class Program
 
 					{e.StackTrace?.Replace("   ", "    ") ?? "`[Not available or not present.]`"}
 					""",
-			issueCreateLink = $"https://github.com/yarb00/TsslInterpreter/issues/new?title={Linkify(issueTitle)}&body={Linkify(issueBody)}";
+			issueCreateLink = issueReportUrl
+				.Replace("{ISSUE_TITLE}", issueTitle.Linkify())
+				.Replace("{ISSUE_BODY}", issueBody.Linkify());
 
 		Console.WriteLine($"""
 
@@ -139,7 +142,7 @@ internal static class Program
 		HttpResponseMessage response;
 		try
 		{
-			response = httpClient.GetAsync(updateDataUrl).Result.EnsureSuccessStatusCode();
+			response = httpClient.GetAsync(updateDataUrl.Replace("{UPDATE_CHANNEL}", updateChannel)).Result.EnsureSuccessStatusCode();
 		}
 		catch
 		{

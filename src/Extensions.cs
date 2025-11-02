@@ -1,11 +1,14 @@
 // https://tssl.yarb00.dev
 
+using System;
 using System.Text.RegularExpressions;
 
 namespace TsslInterpreter;
 
 internal static partial class StringExtensions
 {
+	public static string Linkify(this string @string) => Uri.EscapeDataString(@string);
+
 	public static bool IsNullOrEmpty(this string @string) => string.IsNullOrEmpty(@string);
 	public static bool IsNullOrWhiteSpace(this string @string) => string.IsNullOrWhiteSpace(@string);
 
