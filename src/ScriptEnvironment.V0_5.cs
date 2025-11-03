@@ -82,9 +82,10 @@ internal sealed partial class ScriptEnvironment
 			while (this.currentLine < script.Length)
 			{
 				this.currentLine++;
-				currentLine = this.currentLine;
 				ExecuteInstruction(script[this.currentLine - 1]);
 			}
+
+			currentLine = this.currentLine;
 		}
 
 		private void ScanLabels()
