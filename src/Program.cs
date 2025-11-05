@@ -5,10 +5,8 @@ using System.Collections.Generic;
 using System.Diagnostics;
 using System.IO;
 using System.Linq;
-using System.Net.Http;
 using System.Reflection;
 using System.Runtime.InteropServices;
-using System.Text.Json;
 
 namespace TsslInterpreter;
 
@@ -28,8 +26,6 @@ internal static class Program
 	public static readonly Version? Version = Assembly.GetExecutingAssembly().GetName().Version;
 
 	private const string issueReportUrl = $"{Website}/issue/report/client/?title={{ISSUE_TITLE}}&body={{ISSUE_BODY}}";
-	private const string updateDataUrl = $"{Website}/update/data/client/{{UPDATE_CHANNEL}}.tssl-update-data.json";
-	private const string updateChannel = "release";
 
 	private static readonly Dictionary<CriticalError, (string errorMessage, int exitCode)> errorDataByErrorType = new()
 	{
@@ -135,50 +131,22 @@ internal static class Program
 		Console.WriteLine(new string('=', Title.Length));
 		Console.WriteLine("Fetching the latest version from the internet...");
 
-		if (Version is null) Panic();
+		UpdateData updateData = Updater.GetUpdateData().Result;
 
-		using HttpClient httpClient = new();
-
-		HttpResponseMessage response;
-		try
+		if (!Updater.IsUpdateAvailable(updateData))
 		{
-			response = httpClient.GetAsync(updateDataUrl.Replace("{UPDATE_CHANNEL}", updateChannel)).Result.EnsureSuccessStatusCode();
-		}
-		catch
-		{
-			Panic();
+			Console.WriteLine("You're using the latest version.");
 			return;
 		}
 
-		string responseContent = response.Content.ReadAsStringAsync().Result;
-		JsonElement jsonRoot = JsonDocument.Parse(
-			response.Content.ReadAsStream(),
-			new JsonDocumentOptions
-			{
-				CommentHandling = JsonCommentHandling.Skip,
-				AllowTrailingCommas = true
-			}
-		).RootElement;
+		Console.WriteLine($"""
+			A newer version is available!
 
-		string?
-			latestVersionRaw = jsonRoot.GetProperty("latest_branch_version").GetString(),
-			latestVersionInfo = jsonRoot.GetProperty("latest_branch_version_info").GetString();
+			Installed version: {Version?.ToString(3) ?? "[An error occurred.]"}
+			Latest version: {updateData.LatestVersion?.ToString(3) ?? "[An error occurred.]"}
 
-		if (latestVersionRaw is null || latestVersionInfo is null) Panic();
-
-		Version latestVersion = Version.Parse(latestVersionRaw ?? string.Empty);
-		Version latestVersionTrimmed = new(latestVersion.Major, latestVersion.Minor, latestVersion.Build, 0);
-		Version installedVersionTrimmed = new(Version!.Major, Version.Minor, Version.Build, 0);
-
-		if (latestVersionTrimmed > installedVersionTrimmed) Console.WriteLine("A newer version is available!" + Environment.NewLine);
-
-		Console.WriteLine($"Installed version: {Version!.ToString(3)}");
-		Console.WriteLine($"Latest version: {latestVersion!.ToString(3)}");
-
-		if (latestVersionTrimmed > installedVersionTrimmed) Console.WriteLine($"""
-
-			Download the update and view info about it here:
-			{latestVersionInfo ?? "[Error: server didn't sent the link!]"}
+			Download the update and read more about it here:
+			{updateData.DetailsUrl?.ToString() ?? "[An error occurred.]"}
 			""");
 	}
 
