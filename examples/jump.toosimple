@@ -3,24 +3,25 @@
 # https://tssl.yarb00.dev
 
 # jump> [label]
-# Skip all code until a label with the specified name is found.
+# Continue code execution from a line with the specified label.
 
 # jump if equals exact> [label];[value name];[value]
-# If the [value name] is [value], run "jump> [label]"; otherwise, do nothing.
+# If [value name]'s value equals [value], run "jump> [label]"; otherwise, do nothing.
 
 # jump if equals expression> [label];[value name];[regex]
-# If the [value name]'s [value] matches [regex], run "jump> [label]"; otherwise, do nothing.
+# If [value name]'s value matches [regex], run "jump> [label]"; otherwise, do nothing.
 
 @ask
-print> Exit (y/N)?:
+print> Greet (y/n)?:
 ask value line> answer
 
 jump if equals expression> continue;answer;^[yY]$
-jump if equals expression> exit;answer;^[nN]$
+jump if equals expression> end;answer;^[nN]$
+
 # If answer is not 'y', 'Y', 'n' or 'N', ask again.
 jump> ask
 
 @continue
 print line> Hi!
 
-@exit
+@end

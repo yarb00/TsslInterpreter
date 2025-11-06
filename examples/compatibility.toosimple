@@ -1,7 +1,0 @@
-!TooSimpleScriptingLanguage 0.4
-
-# https://tssl.yarb00.dev
-
-# Script using TSSL v0.4 still works with TsslInterpreter v0.5!
-
-print> Yes, I do work!
