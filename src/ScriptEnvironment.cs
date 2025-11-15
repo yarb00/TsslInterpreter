@@ -4,15 +4,6 @@ using System;
 
 namespace TsslInterpreter;
 
-internal enum CodeError
-{
-	Unknown,
-	InvalidInstruction,
-	InvalidCommandName, InvalidValueName, InvalidLabelName,
-	CommandNotFound, ValueNotFound, LabelNotFound,
-	NoArgumentsRequired, ArgumentsRequired, InvalidArguments
-}
-
 internal sealed partial class ScriptEnvironment(string[] script)
 {
 	private interface IScriptExecutor
@@ -34,7 +25,14 @@ internal sealed partial class ScriptEnvironment(string[] script)
 			else
 			{
 				currentLine++;
-				ExecuteInstruction(script[currentLine - 1]);
+				try
+				{
+					ExecuteInstruction(script[currentLine - 1]);
+				}
+				catch
+				{
+					throw;
+				}
 			}
 		}
 	}
@@ -57,6 +55,6 @@ internal sealed partial class ScriptEnvironment(string[] script)
 			}
 			return;
 		}
-		else Program.Panic(CriticalError.InvalidCode);
+		else throw new InvalidCodeException(currentLine, details: "Only comments can be present before the language version declaration");
 	}
 }
