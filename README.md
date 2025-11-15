@@ -19,7 +19,7 @@ The official [Notepad++](https://github.com/notepad-plus-plus/notepad-plus-plus)
 
 For Windows (amd64), pre-built release versions are available on the Releases section.
 
-For Windows (amd64) and Linux (amd64, glibc), builds of each new commit are available from GitHub Actions, until they expire in 300 days.
+For Windows (amd64), Linux (amd64 + glibc) and macOS (amd64/arm64), builds of each new commit are available from GitHub Actions, until they expire in 300 days.
 
 If you're using a different platform, you can build TsslInterpreter yourself.
 
