@@ -117,7 +117,7 @@ internal sealed partial class ScriptEnvironment
 
 				string label = instruction[1..].Trim();
 
-				if (!label.IsAlphaNumericWithUnderscores())
+				if (!label.IsAlphanumericWithUnderscores)
 				{
 					currentLine = i + 1;
 					throw new InvalidCodeException(currentLine, CodeError.InvalidLabelName);
@@ -137,7 +137,7 @@ internal sealed partial class ScriptEnvironment
 		{
 			instruction = instruction.TrimStart();
 
-			if (instruction.IsNullOrWhiteSpace() || instruction.StartsWith('#') || instruction.StartsWith('@')) return;
+			if (instruction.IsEmptyOrWhitespace || instruction.StartsWith('#') || instruction.StartsWith('@')) return;
 
 			if (instruction.StartsWith("!TooSimpleScriptingLanguage", StringComparison.OrdinalIgnoreCase)) throw new InvalidCodeException(currentLine, details: "Language version is already set");
 
@@ -150,7 +150,7 @@ internal sealed partial class ScriptEnvironment
 				commandName = instruction[..instruction.IndexOf('>')].Trim(), // Before '>'
 				commandArguments = string.Empty;
 
-			if (!commandName.IsAlphaNumericWithSpaces()) throw new InvalidCodeException(currentLine, CodeError.InvalidCommandName);
+			if (!commandName.IsAlphanumericWithSpaces) throw new InvalidCodeException(currentLine, CodeError.InvalidCommandName);
 
 			if (instruction.Length > instruction.IndexOf('>') + 1 + 1) commandArguments = instruction[(instruction.IndexOf('>') + 1 + 1)..]; // After '>'
 
@@ -172,21 +172,21 @@ internal sealed partial class ScriptEnvironment
 
 		private void Jump(string label)
 		{
-			if (label.IsNullOrEmpty()) throw new InvalidCodeException(currentLine, CodeError.ArgumentsRequired, CommandUsage.Jump);
+			if (label.IsEmpty) throw new InvalidCodeException(currentLine, CodeError.ArgumentsRequired, CommandUsage.Jump);
 			else if (!lineByLabel.TryGetValue(label, out int line)) throw new InvalidCodeException(currentLine, CodeError.LabelNotFound);
 			else currentLine = line;
 		}
 
 		private void JumpIfEqualsExact(string args)
 		{
-			if (args.IsNullOrEmpty()) throw new InvalidCodeException(currentLine, CodeError.ArgumentsRequired, CommandUsage.JumpIfEqualsExact);
+			if (args.IsEmpty) throw new InvalidCodeException(currentLine, CodeError.ArgumentsRequired, CommandUsage.JumpIfEqualsExact);
 
 			string[] @params = args.Split(';');
 			if (@params.Length != 3) throw new InvalidCodeException(currentLine, CodeError.InvalidArguments, CommandUsage.JumpIfEqualsExact);
 			(string label, string valueName, string compareValue) = (@params[0].Trim(), @params[1].Trim(), @params[2]);
 
-			if (label.IsNullOrEmpty()) throw new InvalidCodeException(currentLine, CodeError.InvalidLabelName);
-			if (valueName.IsNullOrEmpty()) throw new InvalidCodeException(currentLine, CodeError.InvalidValueName);
+			if (label.IsEmpty) throw new InvalidCodeException(currentLine, CodeError.InvalidLabelName);
+			if (valueName.IsEmpty) throw new InvalidCodeException(currentLine, CodeError.InvalidValueName);
 
 			if (!valueByName.TryGetValue(valueName, out string? valueContent)) throw new InvalidCodeException(currentLine, CodeError.ValueNotFound);
 
@@ -203,14 +203,14 @@ internal sealed partial class ScriptEnvironment
 
 		private void JumpIfEqualsExpression(string args)
 		{
-			if (args.IsNullOrEmpty()) throw new InvalidCodeException(currentLine, CodeError.ArgumentsRequired, CommandUsage.JumpIfEqualsExpression);
+			if (args.IsEmpty) throw new InvalidCodeException(currentLine, CodeError.ArgumentsRequired, CommandUsage.JumpIfEqualsExpression);
 
 			string[] @params = args.Split(';');
 			if (@params.Length != 3) throw new InvalidCodeException(currentLine, CodeError.InvalidArguments, CommandUsage.JumpIfEqualsExpression);
 			(string label, string valueName, string expression) = (@params[0].Trim(), @params[1].Trim(), @params[2]);
 
-			if (label.IsNullOrEmpty()) throw new InvalidCodeException(currentLine, CodeError.InvalidLabelName);
-			if (valueName.IsNullOrEmpty()) throw new InvalidCodeException(currentLine, CodeError.InvalidValueName);
+			if (label.IsEmpty) throw new InvalidCodeException(currentLine, CodeError.InvalidLabelName);
+			if (valueName.IsEmpty) throw new InvalidCodeException(currentLine, CodeError.InvalidValueName);
 
 			if (!valueByName.TryGetValue(valueName, out string? valueContent)) throw new InvalidCodeException(currentLine, CodeError.ValueNotFound);
 			if (valueContent is null) throw new InvalidCodeException(currentLine);
@@ -232,29 +232,29 @@ internal sealed partial class ScriptEnvironment
 
 		private void SetValueLine(string args)
 		{
-			if (args.IsNullOrEmpty()) throw new InvalidCodeException(currentLine, CodeError.ArgumentsRequired, CommandUsage.SetValueLine);
+			if (args.IsEmpty) throw new InvalidCodeException(currentLine, CodeError.ArgumentsRequired, CommandUsage.SetValueLine);
 
 			string[] @params = args.Split(';');
 			if (@params.Length != 2) throw new InvalidCodeException(currentLine, CodeError.InvalidArguments, CommandUsage.SetValueLine);
 			(string valueName, string valueContent) = (@params[0].Trim(), @params[1]);
 
-			if (valueName.IsNullOrEmpty() || !valueName.IsAlphaNumericWithUnderscores()) throw new InvalidCodeException(currentLine, CodeError.InvalidValueName);
+			if (valueName.IsEmpty || !valueName.IsAlphanumericWithUnderscores) throw new InvalidCodeException(currentLine, CodeError.InvalidValueName);
 
 			valueByName[valueName] = valueContent;
 		}
 
 		private void SetValueJoin(string args)
 		{
-			if (args.IsNullOrWhiteSpace()) throw new InvalidCodeException(currentLine, CodeError.ArgumentsRequired, CommandUsage.SetValueJoin);
+			if (args.IsEmptyOrWhitespace) throw new InvalidCodeException(currentLine, CodeError.ArgumentsRequired, CommandUsage.SetValueJoin);
 
 			string[] @params = args.Split(';', StringSplitOptions.TrimEntries);
 			if (@params.Contains(string.Empty) || @params.Length < 2) throw new InvalidCodeException(currentLine, CodeError.InvalidArguments, CommandUsage.SetValueJoin);
 
 			string receiverValue = @params[0], result = string.Empty;
-			if (!receiverValue.IsAlphaNumericWithUnderscores()) throw new InvalidCodeException(currentLine, CodeError.InvalidValueName);
+			if (!receiverValue.IsAlphanumericWithUnderscores) throw new InvalidCodeException(currentLine, CodeError.InvalidValueName);
 
 			foreach (string senderValue in @params[1..])
-				if (!senderValue.IsAlphaNumericWithUnderscores()) throw new InvalidCodeException(currentLine, CodeError.InvalidValueName);
+				if (!senderValue.IsAlphanumericWithUnderscores) throw new InvalidCodeException(currentLine, CodeError.InvalidValueName);
 				else if (!valueByName.TryGetValue(senderValue, out string? senderValueContent)) throw new InvalidCodeException(currentLine, CodeError.ValueNotFound);
 				else result += senderValueContent;
 
@@ -276,7 +276,7 @@ internal sealed partial class ScriptEnvironment
 
 		private void PrintValue(string valueName)
 		{
-			if (valueName.IsNullOrWhiteSpace()) throw new InvalidCodeException(currentLine, CodeError.ArgumentsRequired, CommandUsage.PrintValue);
+			if (valueName.IsEmptyOrWhitespace) throw new InvalidCodeException(currentLine, CodeError.ArgumentsRequired, CommandUsage.PrintValue);
 			else if (!valueByName.TryGetValue(valueName, out string? valueContent)) throw new InvalidCodeException(currentLine, CodeError.ValueNotFound);
 			else Print(valueContent);
 		}
@@ -285,7 +285,7 @@ internal sealed partial class ScriptEnvironment
 
 		private void PrintValueLine(string valueName)
 		{
-			if (valueName.IsNullOrWhiteSpace()) throw new InvalidCodeException(currentLine, CodeError.ArgumentsRequired, CommandUsage.PrintValueLine);
+			if (valueName.IsEmptyOrWhitespace) throw new InvalidCodeException(currentLine, CodeError.ArgumentsRequired, CommandUsage.PrintValueLine);
 			else if (!valueByName.TryGetValue(valueName, out string? valueContent)) throw new InvalidCodeException(currentLine, CodeError.ValueNotFound);
 			else PrintLine(valueContent);
 		}
@@ -296,13 +296,13 @@ internal sealed partial class ScriptEnvironment
 
 		private void AskPause(string _)
 		{
-			if (!_.IsNullOrWhiteSpace()) throw new InvalidCodeException(currentLine, CodeError.NoArgumentsRequired, CommandUsage.AskPause);
+			if (!_.IsEmptyOrWhitespace) throw new InvalidCodeException(currentLine, CodeError.NoArgumentsRequired, CommandUsage.AskPause);
 			Console.ReadKey(false);
 		}
 
 		private void AskValueLine(string valueName)
 		{
-			if (valueName.IsNullOrEmpty()) throw new InvalidCodeException(currentLine, CodeError.ArgumentsRequired, CommandUsage.AskValueLine);
+			if (valueName.IsEmpty) throw new InvalidCodeException(currentLine, CodeError.ArgumentsRequired, CommandUsage.AskValueLine);
 
 			string? input = Console.ReadLine();
 			if (input is null) Program.Exit();
@@ -323,7 +323,7 @@ internal sealed partial class ScriptEnvironment
 
 		private void ExecuteProcess(string command)
 		{
-			if (command.IsNullOrEmpty()) throw new InvalidCodeException(currentLine, CodeError.ArgumentsRequired, CommandUsage.ExecuteProcess);
+			if (command.IsEmpty) throw new InvalidCodeException(currentLine, CodeError.ArgumentsRequired, CommandUsage.ExecuteProcess);
 
 			if (!command.Trim().Contains(' ')) Process.Start(command);
 			else
@@ -340,7 +340,7 @@ internal sealed partial class ScriptEnvironment
 
 		private void ExecuteProcessValue(string valueName)
 		{
-			if (valueName.IsNullOrWhiteSpace()) throw new InvalidCodeException(currentLine, CodeError.ArgumentsRequired, CommandUsage.ExecuteProcessValue);
+			if (valueName.IsEmptyOrWhitespace) throw new InvalidCodeException(currentLine, CodeError.ArgumentsRequired, CommandUsage.ExecuteProcessValue);
 			else if (!valueByName.TryGetValue(valueName, out string? valueContent)) throw new InvalidCodeException(currentLine, CodeError.ValueNotFound);
 			else
 				try
@@ -355,7 +355,7 @@ internal sealed partial class ScriptEnvironment
 
 		private void ExecuteProcessWait(string command)
 		{
-			if (command.IsNullOrEmpty()) throw new InvalidCodeException(currentLine, CodeError.ArgumentsRequired, CommandUsage.ExecuteProcessWait);
+			if (command.IsEmpty) throw new InvalidCodeException(currentLine, CodeError.ArgumentsRequired, CommandUsage.ExecuteProcessWait);
 
 			string fileName = command;
 			string? arguments = null;
@@ -377,7 +377,7 @@ internal sealed partial class ScriptEnvironment
 
 		private void ExecuteProcessValueWait(string valueName)
 		{
-			if (valueName.IsNullOrWhiteSpace()) throw new InvalidCodeException(currentLine, CodeError.ArgumentsRequired, CommandUsage.ExecuteProcessValueWait);
+			if (valueName.IsEmptyOrWhitespace) throw new InvalidCodeException(currentLine, CodeError.ArgumentsRequired, CommandUsage.ExecuteProcessValueWait);
 			else if (!valueByName.TryGetValue(valueName, out string? valueContent)) throw new InvalidCodeException(currentLine, CodeError.ValueNotFound);
 			else ExecuteProcessWait(valueContent);
 		}

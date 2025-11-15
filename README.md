@@ -8,27 +8,27 @@ Documentation will be written later when the language becomes more stable.
 
 ### Editor support
 
-The official [Notepad++](https://github.com/notepad-plus-plus/notepad-plus-plus) syntax file (UDL) for the latest version of TSSL can be found at `editors/npp/TooSimpleScriptingLanguage.xml`.
+The official [Notepad++](https://github.com/notepad-plus-plus/notepad-plus-plus) syntax file (User Defined Language) for the latest version of TSSL can be found at `editors/npp/TooSimpleScriptingLanguage.xml`.
 
 > [!NOTE]
-> Notepad++ is only available for Windows. There is a crossplatform reimplementation called [NotepadNext](https://github.com/dail8859/NotepadNext), but it doesn't support UDLs currently.
+> Notepad++ is only available for Windows. There is a cross platform reimplementation called [NotepadNext](https://github.com/dail8859/NotepadNext), but it doesn't support UDLs currently.
 
-## How to use
+## Get TsslInterpreter
 
 ### Pre-built
 
-Compiled builds of each new commit are available from GitHub Actions.
+For Windows (amd64), pre-built release versions are available on the Releases section.
 
-Starting with version 0.5, the Releases section also uses them.
+For Windows (amd64) and Linux (amd64, glibc), builds of each new commit are available from GitHub Actions, until they expire in 300 days.
+
+If you're using a different platform, you can build TsslInterpreter yourself.
 
 ### Build yourself
 
-1. Install the latest [Git](https://git-scm.com/downloads) and the latest [.NET SDK](https://dot.net/download), if you don't have them already.  
-> [!IMPORTANT]  
-> While the TsslInterpreter itself targets .NET 8, you'll need to have at least .NET 9 because of usage of the XML solution file (.slnx).
-
+1. Install the latest [Git](https://git-scm.com/downloads) and the latest [.NET SDK](https://dot.net/download) (version 10 or higher), if you don't have them already.
 2. Make sure that you have `git` and `dotnet` available in your PATH.
-3. Run `git clone https://github.com/yarb00/TsslInterpreter.git`. It will create a new `TsslInterpreter` directory in your current directory.
+3. Clone TsslInterpreter source code with `git clone https://github.com/yarb00/TsslInterpreter.git` (you can also use SSH or git:// protocol).
 4. `cd TsslInterpreter`
-5. Build the project with `dotnet publish -r <RID>`. The full list of RIDs can be found [here](https://learn.microsoft.com/en-us/dotnet/core/rid-catalog#known-rids).
-6. The executable will be placed in `<project directory>/src/bin/Release/net8.0/<RID>/publish`, along with the debug file (.PDB/.DBG).
+5. (Optional): Run `git checkout v<A>.<B>.<C>` to build the specific release. Otherwise, the latest commit will be used (which can be ahead of the latest version).
+6. Build the project with `dotnet publish -r <RID>`. See the [list of RIDs](https://learn.microsoft.com/en-us/dotnet/core/rid-catalog#known-rids) and replace `<RID>` with the right one.
+7. The executable will be placed in `<project directory>/src/bin/Release/net10.0/<RID>/publish`.

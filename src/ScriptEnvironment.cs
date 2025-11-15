@@ -21,7 +21,15 @@ internal sealed partial class ScriptEnvironment(string[] script)
 	{
 		while (currentLine < script.Length)
 		{
-			if (executor is not null) executor.ExecuteScript(ref currentLine);
+			if (executor is not null)
+				try
+				{
+					executor.ExecuteScript(ref currentLine);
+				}
+				catch (InvalidCodeException e)
+				{
+					Program.Panic(CriticalError.InvalidCode, e.Message);
+				}
 			else
 			{
 				currentLine++;
@@ -43,7 +51,7 @@ internal sealed partial class ScriptEnvironment(string[] script)
 
 		instruction = instruction.TrimStart();
 
-		if (instruction.IsNullOrWhiteSpace() || instruction.StartsWith('#')) return;
+		if (instruction.IsEmptyOrWhitespace || instruction.StartsWith('#')) return;
 
 		if (instruction.StartsWith("!TooSimpleScriptingLanguage", StringComparison.OrdinalIgnoreCase))
 		{

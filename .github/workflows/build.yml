@@ -17,9 +17,9 @@ jobs:
     strategy:
       matrix:
         os:
-          - runner_name: ubuntu-24.04
+          - runner_name: ubuntu-22.04
             dotnet_rid: linux-x64
-          - runner_name: windows-2025
+          - runner_name: windows-2022
             dotnet_rid: win-x64
     runs-on: ${{ matrix.os.runner_name }}
     steps:
@@ -30,7 +30,8 @@ jobs:
       - name: Setup .NET
         uses: actions/setup-dotnet@v5
         with:
-          dotnet-version: 10.0.100
+          dotnet-version: 10.0.1xx
+          dotnet-quality: ga
       - name: Build
         run: dotnet publish -r ${{ matrix.os.dotnet_rid }}
       - name: Upload build artifacts

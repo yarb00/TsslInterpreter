@@ -12,6 +12,7 @@ namespace TsslInterpreter;
 
 internal enum CriticalError
 {
+	Unknown = 1,
 	InvalidArguments,
 	FileReadError, EmptyFile,
 	NotSupportedLanguageVersion,
@@ -25,18 +26,16 @@ internal static class Program
 	public static readonly string Title = Name + (Version is not null ? $" v{Version.ToString(3)}" : string.Empty);
 	public static readonly Version? Version = Assembly.GetExecutingAssembly().GetName().Version;
 
-	private const string issueReportUrl = $"{Website}/issue/report/client/?title={{ISSUE_TITLE}}&body={{ISSUE_BODY}}";
+	private const string issueReportUrl = $"{Website}/issue/report/client/?title=[ISSUE_TITLE]&body=[ISSUE_BODY]";
 
-	private static readonly Dictionary<CriticalError, (string errorMessage, int exitCode)> errorDataByErrorType = new()
+	private static readonly Dictionary<CriticalError, string> messageByErrorType = new()
 	{
-		[CriticalError.InvalidArguments] = ("You should pass exactly 1 argument: the path to the code file.", 2),
-		[CriticalError.FileReadError] = ("An error occurred while reading the code file. (does it exist? is it accessible?)", 3),
-		[CriticalError.EmptyFile] = ("The code file is empty.", 4),
-		[CriticalError.NotSupportedLanguageVersion] = ("The TSSL version specified in this script is not supported by this version of interpreter.", 5),
-		[CriticalError.InvalidCode] = ("Your code contains an error.", 6)
+		[CriticalError.InvalidArguments] = "You should pass exactly 1 argument: the path to the code file.",
+		[CriticalError.FileReadError] = "An error occurred while reading the code file. Does it exist? Is it accessible?",
+		[CriticalError.EmptyFile] = "The code file is empty.",
+		[CriticalError.NotSupportedLanguageVersion] = "The TSSL version specified in this script is not supported by this version of interpreter.",
+		[CriticalError.InvalidCode] = "Your code contains an error."
 	};
-
-	private static string? codeErrorInfo = null;
 
 	public static void Main(string[] args)
 	{
@@ -44,7 +43,6 @@ internal static class Program
 
 		if (!Debugger.IsAttached) AppDomain.CurrentDomain.UnhandledException += static (_, e) => HandleUnhandledException((Exception)e.ExceptionObject);
 
-		AppDomain.CurrentDomain.ProcessExit += (_, _) => Exit(shouldKillProcess: false);
 		Console.CancelKeyPress += (_, _) => Exit(shouldKillProcess: false);
 
 		if (args.Length != 1)
@@ -100,29 +98,21 @@ internal static class Program
 					{e.StackTrace?.Replace("   ", "    ") ?? "`[Not available or not present.]`"}
 					""",
 			issueCreateLink = issueReportUrl
-				.Replace("{ISSUE_TITLE}", issueTitle.Linkify())
-				.Replace("{ISSUE_BODY}", issueBody.Linkify());
+				.Replace("[ISSUE_TITLE]", issueTitle.Linkify())
+				.Replace("[ISSUE_BODY]", issueBody.Linkify());
 
-		Console.WriteLine($"""
+		Exit($"""
+			An unhandled exception occurred!
+			It's a serious error that should not normally happen.
+			Please report it by visiting the URL below and reporting an issue (report should be already prefilled).
+			Note that you would need a GitHub account to do so.
 
-				{new string('=', Title.Length)}
-				An unhandled exception occurred!
-				It's a serious error that should not normally happen.
-				Please report it by visiting the URL below and reporting an issue (report should be already prefilled).
-				Note that you would need a GitHub account to do so.
+			Issue create link:
+			{issueCreateLink}
 
-				Issue create link:
-				{issueCreateLink}
-
-				If you know what you're doing, here are advanced details:
-
-				Exception message: {e.Message}
-				Inner exception message: {e.InnerException?.Message ?? "[Not available or not present.]"}
-				===== Stack trace (inner exception): =====
-				{e.InnerException?.StackTrace ?? "[Not available or not present.]"}
-				===== Stack trace: =====
-				{e.StackTrace ?? "[Not available or not present.]"}
-				""");
+			If you know what you're doing, here are advanced details:
+			{e}
+			""", shouldKillProcess: false);
 	}
 
 	private static void CheckUpdates()
@@ -131,7 +121,7 @@ internal static class Program
 		Console.WriteLine(new string('=', Title.Length));
 		Console.WriteLine("Fetching the latest version from the internet...");
 
-		UpdateData updateData = Updater.GetUpdateData().Result;
+		UpdateData updateData = Updater.GetUpdateData().GetAwaiter().GetResult();
 
 		if (!Updater.IsUpdateAvailable(updateData))
 		{
@@ -158,12 +148,6 @@ internal static class Program
 		{
 			codeLines = File.ReadAllLines(filePath);
 		}
-		catch (FileNotFoundException)
-		{
-			if (!filePath.ToLower().EndsWith(".toosimple")) RunCodeFromFile($"{filePath}.toosimple");
-			else Panic(CriticalError.FileReadError);
-			return;
-		}
 		catch
 		{
 			Panic(CriticalError.FileReadError);
@@ -173,31 +157,25 @@ internal static class Program
 		if (codeLines.Length == 0) Panic(CriticalError.EmptyFile);
 
 		new ScriptEnvironment(codeLines).ExecuteScript();
-
-		Exit();
 	}
 
-	public static void Panic(CriticalError? errorType = null, string? message = null)
+	public static void Panic(CriticalError error = CriticalError.Unknown, string? message = null)
 	{
-		codeErrorInfo = message;
-		if (errorType is null || !errorDataByErrorType.TryGetValue((CriticalError)errorType, out (string message, int exitCode) error))
-			Exit("An unknown error occurred.", 1);
-		else Exit(error.message, error.exitCode);
+		if (message is null && !messageByErrorType.TryGetValue(error, out message)) message = "An error occurred.";
+
+		Exit(message, (int)error);
 	}
 
 	public static void Exit(string message = "", int exitCode = 0, bool shouldKillProcess = true)
 	{
-		if (exitCode != 0) Console.WriteLine($"""
+		Console.WriteLine();
 
+		if (exitCode != 0) Console.WriteLine($"""
 			{new string('=', Title.Length)}
-			{Name} had to close. Here's the reason:
+			{Name} had to close. Reason:
 			"{message}"
 			""");
-		if (exitCode == errorDataByErrorType[CriticalError.InvalidCode].exitCode && codeErrorInfo is not null) Console.WriteLine($"""
-			{new string('=', Title.Length)}
-			Additional info:
-			{codeErrorInfo}
-			""");
+
 		if (shouldKillProcess) Environment.Exit(exitCode);
 	}
 }
