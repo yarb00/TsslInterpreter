@@ -11,15 +11,10 @@ internal readonly record struct UpdateData(Version? LatestVersion, Uri? DetailsU
 
 internal static class Updater
 {
-	private const string updateDataUrl = $"{Program.Website}/update/data/client/{updateChannel}.tssl-update-data.json";
 	private const string updateChannel = "release";
+	private const string updateDataUrl = $"{Program.Website}/update/data/client/{updateChannel}.tssl-update-data.json";
 
-	public static bool IsUpdateAvailable(UpdateData updateData)
-	{
-		if (updateData.LatestVersion is null || Program.Version is null) Program.Panic(message: "Can't check updates: version is missing.");
-
-		return IsUpdateAvailable(updateData.LatestVersion!, Program.Version!);
-	}
+	public static bool? IsUpdateAvailable(UpdateData updateData) => updateData.LatestVersion is null ? null : IsUpdateAvailable(updateData.LatestVersion, Program.Version);
 
 	public static bool IsUpdateAvailable(Version latestVersion, Version installedVersion)
 	{
@@ -33,7 +28,7 @@ internal static class Updater
 	public static async Task<UpdateData> GetUpdateData()
 	{
 		using HttpClient httpClient = new();
-		httpClient.DefaultRequestHeaders.UserAgent.Add(new(Program.Name, Program.Version?.ToString(3)));
+		httpClient.DefaultRequestHeaders.UserAgent.Add(new(Program.Name, Program.FriendlyVersion));
 
 		string response;
 		try

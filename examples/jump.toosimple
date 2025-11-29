@@ -6,16 +6,18 @@
 # Continue code execution from a line with the specified label.
 
 # jump if equals exact> [label];[value name];[value]
-# If [value name]'s value equals [value], run "jump> [label]"; otherwise, do nothing.
+# If value called [value name] equals to [value], run "jump> [label]"; otherwise, do nothing.
 
 # jump if equals expression> [label];[value name];[regex]
-# If [value name]'s value matches [regex], run "jump> [label]"; otherwise, do nothing.
+# If value called [value name] matches regex [regex], run "jump> [label]"; otherwise, do nothing.
 
 @ask
 print> Greet (y/n)?:
 ask value line> answer
 
+# Print "Hi!" and exit.
 jump if equals expression> continue;answer;^[yY]$
+# Exit and don't print anything.
 jump if equals expression> end;answer;^[nN]$
 
 # If answer is not 'y', 'Y', 'n' or 'N', ask again.

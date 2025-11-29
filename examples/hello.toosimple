@@ -8,7 +8,7 @@ print> Name:
 ask value line> name
 
 print value> name
-print line> , nice to meet you! 
+print line> ? Nice name!
 
 print> Your age?:
 ask value line> age

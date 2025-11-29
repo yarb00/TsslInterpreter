@@ -1,5 +1,5 @@
 <NotepadPlus>
-    <UserLang name="TooSimpleScriptingLanguage" ext="toosimple" udlVersion="2.1">
+    <UserLang name="Too Simple Scripting Language" ext="toosimple" udlVersion="2.1">
         <Settings>
             <Global caseIgnored="yes" allowFoldOfComments="no" foldCompact="no" forcePureLC="1" decimalSeparator="0" />
             <Prefix Keywords1="no" Keywords2="no" Keywords3="no" Keywords4="no" Keywords5="no" Keywords6="no" Keywords7="no" Keywords8="no" />
@@ -25,7 +25,7 @@
             <Keywords name="Folders in comment, middle"></Keywords>
             <Keywords name="Folders in comment, close"></Keywords>
             <Keywords name="Keywords1">&quot;set value line&quot;&#x000D;&#x000A;&quot;set value join&quot;&#x000D;&#x000A;&quot;print&quot;&#x000D;&#x000A;&quot;print value&quot;&#x000D;&#x000A;&quot;print line&quot;&#x000D;&#x000A;&quot;print value line&quot;&#x000D;&#x000A;&quot;ask pause&quot;&#x000D;&#x000A;&quot;ask value line&quot;&#x000D;&#x000A;&quot;execute process&quot;&#x000D;&#x000A;&quot;execute process value&quot;&#x000D;&#x000A;&quot;execute process wait&quot;&#x000D;&#x000A;&quot;execute process value wait&quot;</Keywords>
-            <Keywords name="Keywords2">_language_version&#x000D;&#x000A;_interpreter_website&#x000D;&#x000A;_interpreter_name&#x000D;&#x000A;_interpreter_version</Keywords>
+            <Keywords name="Keywords2">_language_version&#x000D;&#x000A;_interpreter_name&#x000D;&#x000A;_interpreter_website&#x000D;&#x000A;_interpreter_version</Keywords>
             <Keywords name="Keywords3">&quot;jump&quot;&#x000D;&#x000A;&quot;jump if equals exact&quot;&#x000D;&#x000A;&quot;jump if equals expression&quot;</Keywords>
             <Keywords name="Keywords4"></Keywords>
             <Keywords name="Keywords5"></Keywords>

@@ -1,12 +1,14 @@
 // https://tssl.yarb00.dev
 
 using System;
+using System.Collections.Frozen;
 using System.Collections.Generic;
 using System.Diagnostics;
+using System.Globalization;
 using System.IO;
-using System.Linq;
 using System.Reflection;
 using System.Runtime.InteropServices;
+using System.Threading.Tasks;
 
 namespace TsslInterpreter;
 
@@ -21,94 +23,116 @@ internal enum CriticalError
 
 internal static class Program
 {
-	public const string Website = "https://tssl.yarb00.dev";
 	public const string Name = "TsslInterpreter";
-	public static readonly string Title = Name + (Version is not null ? $" v{Version.ToString(3)}" : string.Empty);
-	public static readonly Version? Version = Assembly.GetExecutingAssembly().GetName().Version;
+	public const string Website = "https://tssl.yarb00.dev";
 
-	private const string issueReportUrl = $"{Website}/issue/report/client/?title=[ISSUE_TITLE]&body=[ISSUE_BODY]";
+	public static readonly Version Version = Assembly.GetExecutingAssembly().GetName().Version ?? throw new UnreachableException("Assembly version can't be null.");
+	public static readonly string FriendlyVersion = Version.ToString(3);
+	public static readonly string Title = $"{Name} v{FriendlyVersion}";
 
-	private static readonly Dictionary<CriticalError, string> messageByErrorType = new()
+	private const string issueReportUrl = $"{Website}/issue/report/client";
+
+	private static readonly FrozenDictionary<CriticalError, string> messageByErrorType = new Dictionary<CriticalError, string>
 	{
 		[CriticalError.InvalidArguments] = "You should pass exactly 1 argument: the path to the code file.",
 		[CriticalError.FileReadError] = "An error occurred while reading the code file. Does it exist? Is it accessible?",
 		[CriticalError.EmptyFile] = "The code file is empty.",
 		[CriticalError.NotSupportedLanguageVersion] = "The TSSL version specified in this script is not supported by this version of interpreter.",
 		[CriticalError.InvalidCode] = "Your code contains an error."
-	};
+	}.ToFrozenDictionary();
 
 	public static void Main(string[] args)
 	{
-		Console.Title = Title;
-
-		if (!Debugger.IsAttached) AppDomain.CurrentDomain.UnhandledException += static (_, e) => HandleUnhandledException((Exception)e.ExceptionObject);
-
-		Console.CancelKeyPress += (_, _) => Exit(shouldKillProcess: false);
-
-		if (args.Length != 1)
+		static void PrintUsageAndPanic()
 		{
 			Console.WriteLine($"""
-				Usage:
-					Run TSSL code from a file:
-						{Name} <file path>
+				Welcome to {Title}. Usage:
+					Run code from a file:
+						{Name} <path>
 					Print {Name} version:
 						{Name} --version
 						{Name} -v
 					Check for {Name} updates (requires an internet connection):
 						{Name} --check-updates
 						{Name} -u
+
+				Visit {Website} for more information.
 				""");
 
 			Panic(CriticalError.InvalidArguments);
 		}
 
-		if (new string[] { "--version", "-v", "--check-updates", "-u" }.Contains(args[0]) && Version is null) Panic();
-		else if (args[0] is "--version" or "-v" && Version is not null) Console.WriteLine(Version.ToString(3));
-		else if (args[0] is "--check-updates" or "-u" && Version is not null) CheckUpdates();
+		CultureInfo.CurrentCulture = CultureInfo.CurrentUICulture =
+			CultureInfo.DefaultThreadCurrentCulture = CultureInfo.DefaultThreadCurrentUICulture =
+			CultureInfo.InvariantCulture;
+
+		Console.Title = Title;
+
+		if (!Debugger.IsAttached)
+		{
+			AppDomain.CurrentDomain.UnhandledException += static (_, e) => HandleUnhandledException(e.ExceptionObject as Exception);
+			TaskScheduler.UnobservedTaskException += static (_, e) => HandleUnhandledException(e.Exception);
+		}
+
+		Console.CancelKeyPress += (_, _) => Exit(shouldKillProcess: false);
+
+		if (args.Length != 1) PrintUsageAndPanic();
+		else if (args[0].TrimStart().StartsWith("--"))
+			switch (args[0].TrimStart()["--".Length..].TrimEnd()) // Option name without the '--' part
+			{
+				case "version": Console.WriteLine(FriendlyVersion); break;
+				case "check-updates": CheckUpdates(); break;
+				default: PrintUsageAndPanic(); break;
+			}
+		else if (args[0].TrimStart().StartsWith('-'))
+		{
+			if (args[0].Trim().Length != 2) PrintUsageAndPanic(); // Multiple arguments are not supported
+			char option = args[0].Trim()[1]; // Option name without the '-' part
+			switch (option)
+			{
+				case 'v': Console.WriteLine(FriendlyVersion); break;
+				case 'u': CheckUpdates(); break;
+				default: PrintUsageAndPanic(); break;
+			}
+		}
 		else RunCodeFromFile(args[0]);
 	}
 
-	private static void HandleUnhandledException(Exception e)
+	private static void HandleUnhandledException(Exception? e)
 	{
-		static string GetOSData() => RuntimeInformation.OSDescription;
+		if (e is null) Exit($"""
+			An unhandled exception occurred!
+			It's a serious error that should not normally happen.
+
+			Please report this problem by visiting {issueReportUrl} and reporting an issue
+			(make sure that your report is detailed enough and describes what you did that crashed the program).
+
+			...Also, exception details should be there, but they're not available :(
+			""", shouldKillProcess: false);
 
 		string
-			issueTitle = $"Unhandled exception: `{e.GetType().Name}`",
+			issueTitle = $"Unhandled exception: `{e!.GetType().Name}`",
 			issueBody = $"""
-					***Auto-generated by {Name}.***
+				***Auto-generated by {Name}.***
 
-					## Environment
+				## Environment
 
-					**{Name} version**: `{Version?.ToString(3) ?? "[Not available or not present.]"}`
-					**OS**: `{GetOSData()}`
+				**{Name} version**: `{FriendlyVersion}`
+				**OS**: `{RuntimeInformation.OSDescription}`
 
-					## Exception info
+				## Exception details
 
-					**Exception type**: `{e.GetType().FullName}`
-					**Exception message**: `{e.Message}`
-					**Inner exception type**: `{e.InnerException?.GetType().FullName ?? "[Not available or not present.]"}`
-					**Inner exception message**: `{e.InnerException?.Message ?? "[Not available or not present.]"}`
-
-					### Stack trace (inner exception)
-
-					{e.InnerException?.StackTrace?.Replace("   ", "    ") ?? "`[Not available or not present.]`"}
-
-					### Stack trace
-
-					{e.StackTrace?.Replace("   ", "    ") ?? "`[Not available or not present.]`"}
-					""",
-			issueCreateLink = issueReportUrl
-				.Replace("[ISSUE_TITLE]", issueTitle.Linkify())
-				.Replace("[ISSUE_BODY]", issueBody.Linkify());
+				```
+				{e}
+				```
+				""";
 
 		Exit($"""
 			An unhandled exception occurred!
 			It's a serious error that should not normally happen.
-			Please report it by visiting the URL below and reporting an issue (report should be already prefilled).
-			Note that you would need a GitHub account to do so.
 
-			Issue create link:
-			{issueCreateLink}
+			Please report it by visiting this URL (report should be already prefilled with details, but please add more information manually):
+			{issueReportUrl}?title={issueTitle.Linkify()}&body={issueBody.Linkify()}
 
 			If you know what you're doing, here are advanced details:
 			{e}
@@ -117,25 +141,21 @@ internal static class Program
 
 	private static void CheckUpdates()
 	{
-		Console.WriteLine(Title);
-		Console.WriteLine(new string('=', Title.Length));
+		Console.WriteLine($"Welcome to {Title}.");
 		Console.WriteLine("Fetching the latest version from the internet...");
 
 		UpdateData updateData = Updater.GetUpdateData().GetAwaiter().GetResult();
 
-		if (!Updater.IsUpdateAvailable(updateData))
+		if (!Updater.IsUpdateAvailable(updateData) ?? false)
 		{
 			Console.WriteLine("You're using the latest version.");
 			return;
 		}
 
 		Console.WriteLine($"""
-			A newer version is available!
+			Version {updateData.LatestVersion?.ToString(3) ?? "[An error occurred.]"} is available!
 
-			Installed version: {Version?.ToString(3) ?? "[An error occurred.]"}
-			Latest version: {updateData.LatestVersion?.ToString(3) ?? "[An error occurred.]"}
-
-			Download the update and read more about it here:
+			Information about the update:
 			{updateData.DetailsUrl?.ToString() ?? "[An error occurred.]"}
 			""");
 	}

@@ -63,6 +63,6 @@ internal sealed partial class ScriptEnvironment(string[] script)
 			}
 			return;
 		}
-		else throw new InvalidCodeException(currentLine, details: "Only comments can be present before the language version declaration");
+		else throw new InvalidCodeException(currentLine, details: "Only comments can be present before the language version declaration.");
 	}
 }

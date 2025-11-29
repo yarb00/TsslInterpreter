@@ -1,6 +1,7 @@
 // https://tssl.yarb00.dev
 
 using System;
+using System.Collections.Frozen;
 using System.Collections.Generic;
 
 namespace TsslInterpreter;
@@ -22,7 +23,7 @@ internal sealed class InvalidCodeException : Exception
 
 	public string? Details { get; private init; }
 
-	private static readonly Dictionary<CodeError, string> messageByCodeError = new()
+	private static readonly FrozenDictionary<CodeError, string> messageByCodeError = new Dictionary<CodeError, string>()
 	{
 		[CodeError.Unknown] = "An error occurred",
 
@@ -41,14 +42,14 @@ internal sealed class InvalidCodeException : Exception
 		[CodeError.LabelNotFound] = "Specified label is not found",
 
 		[CodeError.LabelAlreadyDefined] = "Label with this name is already defined"
-	};
+	}.ToFrozenDictionary();
 
-	private static readonly Dictionary<CodeError, string?> defaultDetailsByCodeError = new()
+	private static readonly FrozenDictionary<CodeError, string?> defaultDetailsByCodeError = new Dictionary<CodeError, string?>()
 	{
 		[CodeError.InvalidCommandName] = "Command name can only contain numbers, Latin letters and spaces",
 		[CodeError.InvalidValueName] = "Value name can only contain numbers, Latin letters and underscores",
 		[CodeError.InvalidLabelName] = "Label name can only contain numbers, Latin letters and underscores"
-	};
+	}.ToFrozenDictionary();
 
 	public InvalidCodeException(
 		int line,
