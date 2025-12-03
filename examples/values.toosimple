@@ -1,0 +1,23 @@
+!TooSimpleScriptingLanguage 0.5
+
+# https://tssl.yarb00.dev
+
+# This line MUST end with a space.
+# Trimming of trailing spaces in *.toosimple files is disabled in .editorconfig,
+# but if your editor doesn't respect it, turn off line trimming manually.
+set value line> space; 
+
+# interpreter = _interpreter_name + ' ' + _interpreter_version
+# Whitespace in the "set value join>" command is not required, but N++ syntax highlighting doesn't work without them.
+set value join> interpreter ; _interpreter_name ; space ; _interpreter_version
+
+print> TSSL version:
+print value line> _language_version
+
+print> Your interpreter:
+print value line> interpreter
+
+print> Website of your interpreter:
+print value line> _interpreter_website
+
+ask pause>

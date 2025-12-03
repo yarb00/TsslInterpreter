@@ -12,43 +12,19 @@ on:
       - master
 
 jobs:
-
-  debug:
-    name: Build (Debug)
-    strategy:
-      matrix:
-        os:
-          - runner_name: ubuntu-latest
-          - runner_name: windows-latest
-    runs-on: ${{ matrix.os.runner_name }}
-    steps:
-      - name: Checkout
-        uses: actions/checkout@v5
-        with:
-          fetch-depth: 1
-      - name: Setup .NET
-        uses: actions/setup-dotnet@v5
-        with:
-          # "dotnet_version" is 9.0.x instead of 8.0.x, because SDK 8 doesn't support XML solutions (.slnx)
-          dotnet-version: 9.0.x
-      - name: Build
-        run: dotnet build
-      - name: Upload build artifacts
-        uses: actions/upload-artifact@v4
-        with:
-          name: TsslInterpreter ( Debug , ${{ matrix.os.runner_name }} )
-          path: src/bin/Debug/net8.0
-          if-no-files-found: error
-
   release:
-    name: Build (Release)
+    name: Publish (Release)
     strategy:
       matrix:
         os:
-          - runner_name: ubuntu-latest
+          - runner_name: ubuntu-22.04
             dotnet_rid: linux-x64
-          - runner_name: windows-latest
+          - runner_name: windows-2022
             dotnet_rid: win-x64
+          - runner_name: macos-15-intel
+            dotnet_rid: osx-x64
+          - runner_name: macos-15
+            dotnet_rid: osx-arm64
     runs-on: ${{ matrix.os.runner_name }}
     steps:
       - name: Checkout
@@ -58,13 +34,13 @@ jobs:
       - name: Setup .NET
         uses: actions/setup-dotnet@v5
         with:
-          # "dotnet_version" is 9.0.x instead of 8.0.x, because SDK 8 doesn't support XML solutions (.slnx)
-          dotnet-version: 9.0.x
+          dotnet-version: 10.0.1xx
+          dotnet-quality: ga
       - name: Build
         run: dotnet publish -r ${{ matrix.os.dotnet_rid }}
       - name: Upload build artifacts
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v5
         with:
-          name: TsslInterpreter ( Release , ${{ matrix.os.runner_name }} , ${{ matrix.os.dotnet_rid }} )
-          path: src/bin/Release/net8.0/${{ matrix.os.dotnet_rid }}/publish
+          name: TsslInterpreter (${{ matrix.os.runner_name }}) (Release) (${{ matrix.os.dotnet_rid }})
+          path: src/bin/Release/net10.0/${{ matrix.os.dotnet_rid }}/publish
           if-no-files-found: error

@@ -1,20 +1,20 @@
-!TooSimpleScriptingLanguage 0.4
+!TooSimpleScriptingLanguage 0.5
 
-# https://github.com/yarb00/TsslInterpreter
+# https://tssl.yarb00.dev
 
 print line> Hello! What's your name?
 
-print> Your name:
+print> Name:
 ask value line> name
 
 print value> name
-print line> , nice to meet you! 
+print line> ? Nice name!
 
 print> Your age?:
 ask value line> age
 
 print value> age
-print line> years? ok :D
+print line> ? ok :D
 
-print line> Now press any key to exit.
+print line> Press any key to exit.
 ask pause>
