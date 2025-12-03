@@ -141,14 +141,22 @@ internal static class Program
 
 	private static void CheckUpdates()
 	{
-		Console.WriteLine($"Welcome to {Title}.");
-		Console.WriteLine("Fetching the latest version from the internet...");
+		Console.WriteLine($"Welcome to {Title}. Preparing to check for updates.");
+
+		Console.WriteLine(Updater.UpdateDataLocation switch
+		{
+			Updater.DataLocation.Server => "Update data will be fetched from a remote server. To use a local file, set the 'TSSL_INTERPRETER_LOCAL_UPDATE_DATA_PATH' environment variable.",
+			Updater.DataLocation.Local => "Update data will be loaded from a local file. To fetch update data from the server, unset the 'TSSL_INTERPRETER_LOCAL_UPDATE_DATA_PATH' environment variable.",
+			_ => throw new UnreachableException("Update data location value is not valid.")
+		});
+
+		Console.WriteLine("Getting the update data...");
 
 		UpdateData updateData = Updater.GetUpdateData().GetAwaiter().GetResult();
 
-		if (!Updater.IsUpdateAvailable(updateData) ?? false)
+		if (!Updater.IsUpdateAvailable(updateData) ?? false) // "IsUpdateAvailable()" returns null if update data doesn't contain the version information
 		{
-			Console.WriteLine("You're using the latest version.");
+			Console.WriteLine("You're using the latest version!");
 			return;
 		}
 

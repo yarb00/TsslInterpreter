@@ -1,7 +1,10 @@
 // https://tssl.yarb00.dev
 
 using System;
+using System.Diagnostics;
+using System.IO;
 using System.Net.Http;
+using System.Text;
 using System.Text.Json;
 using System.Threading.Tasks;
 
@@ -11,40 +14,76 @@ internal readonly record struct UpdateData(Version? LatestVersion, Uri? DetailsU
 
 internal static class Updater
 {
-	private const string updateChannel = "release";
-	private const string updateDataUrl = $"{Program.Website}/update/data/client/{updateChannel}.tssl-update-data.json";
+	public enum DataLocation
+	{
+		Server,
+		Local
+	}
+
+	public static readonly DataLocation UpdateDataLocation;
+
+	private const string updateDataServerPath = $"{Program.Website}/update/data/client/release.tssl-update-data.json";
+	private static readonly string updateDataLocalPath = string.Empty;
+
+	static Updater()
+	{
+		string localUpdateDataPath = Environment.GetEnvironmentVariable("TSSL_INTERPRETER_LOCAL_UPDATE_DATA_PATH") ?? string.Empty;
+
+		if (localUpdateDataPath.IsEmptyOrWhitespace) UpdateDataLocation = DataLocation.Server;
+		else
+		{
+			UpdateDataLocation = DataLocation.Local;
+			updateDataLocalPath = localUpdateDataPath;
+		}
+	}
 
 	public static bool? IsUpdateAvailable(UpdateData updateData) => updateData.LatestVersion is null ? null : IsUpdateAvailable(updateData.LatestVersion, Program.Version);
 
-	public static bool IsUpdateAvailable(Version latestVersion, Version installedVersion)
-	{
-		Version
-			latestVersionTrimmed = new(latestVersion.Major, latestVersion.Minor, latestVersion.Build),
-			installedVersionTrimmed = new(installedVersion.Major, installedVersion.Minor, installedVersion.Build);
-
-		return latestVersionTrimmed > installedVersionTrimmed;
-	}
+	public static bool IsUpdateAvailable(Version latestVersion, Version installedVersion) =>
+		// Trim the 4th section of Version, since TsslInterpreter versions are in the A.B.C format
+		new Version(latestVersion.Major, latestVersion.Minor, latestVersion.Build) > new Version(installedVersion.Major, installedVersion.Minor, installedVersion.Build);
 
 	public static async Task<UpdateData> GetUpdateData()
 	{
-		using HttpClient httpClient = new();
-		httpClient.DefaultRequestHeaders.UserAgent.Add(new(Program.Name, Program.FriendlyVersion));
+		string rawUpdateData;
 
-		string response;
-		try
+		switch (UpdateDataLocation)
 		{
-			response = await httpClient.GetStringAsync(updateDataUrl);
-		}
-		catch
-		{
-			Program.Panic(message: "An error occurred while fetching the update data.");
-			throw;
+			case DataLocation.Server:
+				{
+					using HttpClient httpClient = new();
+					httpClient.DefaultRequestHeaders.UserAgent.Add(new(Program.Name, Program.FriendlyVersion));
+					try
+					{
+						rawUpdateData = await httpClient.GetStringAsync(updateDataServerPath);
+					}
+					catch
+					{
+						Program.Panic(message: $"An error occurred while fetching the update data from the server (\"{updateDataServerPath}\").");
+						throw;
+					}
+					break;
+				}
+
+			case DataLocation.Local:
+				try
+				{
+					rawUpdateData = File.ReadAllText(updateDataLocalPath, Encoding.UTF8);
+				}
+				catch
+				{
+					Program.Panic(message: $"An error occurred while reading the file with the update data (\"{updateDataLocalPath}\").");
+					throw;
+				}
+				break;
+
+			default: throw new UnreachableException("Update data location value is not valid.");
 		}
 
 		JsonElement updateData;
 		try
 		{
-			updateData = JsonDocument.Parse(response, new JsonDocumentOptions
+			updateData = JsonDocument.Parse(rawUpdateData, new JsonDocumentOptions
 			{
 				AllowTrailingCommas = true,
 				CommentHandling = JsonCommentHandling.Skip
@@ -52,7 +91,7 @@ internal static class Updater
 		}
 		catch
 		{
-			Program.Panic(message: "The update data server have sent are not valid (can't parse JSON).");
+			Program.Panic(message: "The update data is not valid (can't parse JSON).");
 			throw;
 		}
 
