@@ -1,20 +1,16 @@
-!TooSimpleScriptingLanguage 0.5
+!TooSimpleScriptingLanguage 0.6
 
 # https://tssl.yarb00.dev
 
-print line> Hello! What's your name?
+print> Your name:
+ask line> name
 
-print> Name:
-ask value line> name
+print line> \{name}? Welcome!
 
-print value> name
-print line> ? Nice name!
+print> Your age:
+ask line> age
 
-print> Your age?:
-ask value line> age
-
-print value> age
-print line> ? ok :D
+print line> \{age}? ok :D
 
 print line> Press any key to exit.
 ask pause>
