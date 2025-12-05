@@ -1,27 +1,33 @@
-!TooSimpleScriptingLanguage 0.5
+!TooSimpleScriptingLanguage 0.6
 
 # https://tssl.yarb00.dev
 
-# jump> [label]
+# <[label name]
 # Continue code execution from a line with the specified label.
 
-# jump if equals exact> [label];[value name];[value]
-# If value called [value name] equals to [value], run "jump> [label]"; otherwise, do nothing.
+# <[label name] ?equals> [text1];[text2]
+# If [text1] is the same as [text2], run "<[label name]"; otherwise, do nothing.
 
-# jump if equals expression> [label];[value name];[regex]
-# If value called [value name] matches regex [regex], run "jump> [label]"; otherwise, do nothing.
+# <[label name] ?matches> [text];[regex]
+# If [text] matches [regex], run "<[label name]"; otherwise, do nothing.
+
+# <[label name] ?not equals> [text1];[text2]
+# If [text1] is different from [text2], run "<[label name]"; otherwise, do nothing.
+
+# <[label name] ?not matches> [text];[regex]
+# If [text] does NOT match [regex], run "<[label name]"; otherwise, do nothing.
 
 @ask
 print> Greet (y/n)?:
-ask value line> answer
+ask line> answer
 
 # Print "Hi!" and exit.
-jump if equals expression> continue;answer;^[yY]$
+<continue ?matches> \{answer};^[yY]$
 # Exit and don't print anything.
-jump if equals expression> end;answer;^[nN]$
+<end ?matches> \{answer};^[nN]$
 
 # If answer is not 'y', 'Y', 'n' or 'N', ask again.
-jump> ask
+<ask
 
 @continue
 print line> Hi!
