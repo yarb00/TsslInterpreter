@@ -30,6 +30,15 @@ internal static class Program
 	public static readonly string FriendlyVersion = Version.ToString(3);
 	public static readonly string Title = $"{Name} v{FriendlyVersion}";
 
+	private const string license = """
+		Copyright (c) 2025 yarb00
+
+		Permission is hereby granted, free of charge, to any person obtaining a copy of this software and associated documentation files (the "Software"), to deal in the Software without restriction, including without limitation the rights to use, copy, modify, merge, publish, distribute, sublicense, and/or sell copies of the Software, and to permit persons to whom the Software is furnished to do so, subject to the following conditions:
+
+		The above copyright notice and this permission notice shall be included in all copies or substantial portions of the Software.
+
+		THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
+		""";
 	private const string issueReportUrl = $"{Website}/issue/report/client";
 
 	private static readonly FrozenDictionary<CriticalError, string> messageByErrorType = new Dictionary<CriticalError, string>
@@ -80,8 +89,9 @@ internal static class Program
 		else if (args[0].TrimStart().StartsWith("--"))
 			switch (args[0].TrimStart()["--".Length..].TrimEnd()) // Option name without the '--' part
 			{
-				case "version": Console.WriteLine(FriendlyVersion); break;
 				case "check-updates": CheckUpdates(); break;
+				case "license": Console.WriteLine(license); break;
+				case "version": Console.WriteLine(FriendlyVersion); break;
 				default: PrintUsageAndPanic(); break;
 			}
 		else if (args[0].TrimStart().StartsWith('-'))
@@ -90,8 +100,9 @@ internal static class Program
 			char option = args[0].Trim()[1]; // Option name without the '-' part
 			switch (option)
 			{
-				case 'v': Console.WriteLine(FriendlyVersion); break;
 				case 'u': CheckUpdates(); break;
+				case 'l': Console.WriteLine(license); break;
+				case 'v': Console.WriteLine(FriendlyVersion); break;
 				default: PrintUsageAndPanic(); break;
 			}
 		}
