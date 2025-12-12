@@ -5,28 +5,27 @@
 # <[label name]
 # Continue code execution from a line with the specified label.
 
-# <[label name] ?equals> [text1];[text2]
+# <[label name] ?equals: [text1];[text2]
 # If [text1] is the same as [text2], run "<[label name]"; otherwise, do nothing.
 
-# <[label name] ?matches> [text];[regex]
+# <[label name] ?matches: [text];[regex]
 # If [text] matches [regex], run "<[label name]"; otherwise, do nothing.
 
-# <[label name] ?not equals> [text1];[text2]
+# <[label name] ?not: ?equals: [text1];[text2]
 # If [text1] is different from [text2], run "<[label name]"; otherwise, do nothing.
 
-# <[label name] ?not matches> [text];[regex]
+# <[label name] ?not: ?matches: [text];[regex]
 # If [text] does NOT match [regex], run "<[label name]"; otherwise, do nothing.
 
 @ask
-print> Greet (y/n)?:
+print> Greet (y/N)?:
 ask line> answer
 
-# Print "Hi!" and exit.
-<continue ?matches> \{answer};^[yY]$
-# Exit and don't print anything.
-<end ?matches> \{answer};^[nN]$
+<continue ?matches: \(answer);^[yY]$
+<end ?matches: \(answer);^[nN]$
+<end ?equals: \(answer);
 
-# If answer is not 'y', 'Y', 'n' or 'N', ask again.
+# If answer is not 'y', 'Y', 'n', 'N' or nothing, ask again.
 <ask
 
 @continue

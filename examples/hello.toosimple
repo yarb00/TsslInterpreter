@@ -5,12 +5,12 @@
 print> Your name:
 ask line> name
 
-print line> \{name}? Welcome!
+print line> \(name)? Welcome!
 
 print> Your age:
 ask line> age
 
-print line> \{age}? ok :D
+print line> \(age)? ok :D
 
 print line> Press any key to exit.
 ask pause>
