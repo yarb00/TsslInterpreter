@@ -4,7 +4,6 @@ using System;
 using System.Collections.Frozen;
 using System.Collections.Generic;
 using System.Diagnostics;
-using System.Linq;
 using System.Text.RegularExpressions;
 
 namespace TsslInterpreter;
@@ -19,9 +18,17 @@ file static class CommandUsage
 		SetValueLine = "Usage: set value line> [value name];[text]",
 		SetValueJoin = "Usage: set value join> [result value name];[value1];[value2];[valueX];...",
 
-		Print = "Usage: print> [text]",
+		Print = """
+			Usage:
+				print>
+				print> [text]
+			""",
 		PrintValue = "Usage: print value> [value name]",
-		PrintLine = "Usage: 'print line>', 'print line> [text]'",
+		PrintLine = """
+			Usage:
+				print line>
+				print line> [text]
+			""",
 		PrintValueLine = "Usage: print value line> [value name]",
 
 		AskPause = "Usage: ask pause>",
@@ -120,13 +127,13 @@ internal sealed partial class ScriptEnvironment
 				if (!label.IsAlphanumericWithUnderscores)
 				{
 					currentLine = i + 1;
-					throw new InvalidCodeException(currentLine, CodeError.InvalidLabelName);
+					throw new InvalidCodeException(currentLine, CodeError.InvalidLabelName, $"Label \"{label}\" violates label naming rules: only numbers (0-9), Latin letters (A-Z) and underscores are permitted.");
 				}
 
-				if (lineByLabel.ContainsKey(label))
+				if (lineByLabel.TryGetValue(label, out int line))
 				{
 					currentLine = i + 1;
-					throw new InvalidCodeException(currentLine, CodeError.LabelAlreadyDefined);
+					throw new InvalidCodeException(currentLine, CodeError.LabelAlreadyDefined, $"Label \"{label}\" was already defined at the line {line}.");
 				}
 
 				lineByLabel.Add(label, i + 1);
@@ -137,20 +144,22 @@ internal sealed partial class ScriptEnvironment
 		{
 			instruction = instruction.TrimStart();
 
-			if (instruction.IsEmptyOrWhitespace || instruction.StartsWith('#') || instruction.StartsWith('@')) return;
+			if (instruction.IsEmpty || instruction.StartsWith('#') || instruction.StartsWith('@')) return;
 
-			if (instruction.StartsWith("!TooSimpleScriptingLanguage", StringComparison.OrdinalIgnoreCase)) throw new InvalidCodeException(currentLine, details: "Language version is already set");
+			if (instruction.StartsWith("!TooSimpleScriptingLanguage", StringComparison.OrdinalIgnoreCase))
+				throw new InvalidCodeException(currentLine, CodeError.LanguageVersionAlreadySet, $"Encountered \"{instruction}\", but language version is already set to \"{languageVersion}\".");
 
 			if (!instruction.Contains('>')) throw new InvalidCodeException(currentLine, CodeError.InvalidInstruction);
 
 			if (instruction.Length > instruction.IndexOf('>') + 1 && instruction[instruction.IndexOf('>') + 1] != ' ') // If character after '>' is not space
-				throw new InvalidCodeException(currentLine, CodeError.InvalidInstruction, "Command's arguments must be separated with space");
+				throw new InvalidCodeException(currentLine, CodeError.InvalidInstruction, "Command's arguments must be separated with space.");
 
 			string
 				commandName = instruction[..instruction.IndexOf('>')].Trim(), // Before '>'
 				commandArguments = string.Empty;
 
-			if (!commandName.IsAlphanumericWithSpaces) throw new InvalidCodeException(currentLine, CodeError.InvalidCommandName);
+			if (!commandName.IsAlphanumericWithSpaces)
+				throw new InvalidCodeException(currentLine, CodeError.InvalidCommandName, $"Command \"{commandName}\" violates command naming rules: only numbers (0-9), Latin letters (A-Z) and spaces are permitted.");
 
 			if (instruction.Length > instruction.IndexOf('>') + 1 + 1) commandArguments = instruction[(instruction.IndexOf('>') + 1 + 1)..]; // After '>'
 
@@ -163,17 +172,17 @@ internal sealed partial class ScriptEnvironment
 				{
 					throw;
 				}
-			else throw new InvalidCodeException(currentLine, CodeError.CommandNotFound);
+			else throw new InvalidCodeException(currentLine, CodeError.CommandNotFound, $"There is no command named \"{commandName}\". Have you made a typo? Are you using the wrong language version (\"{languageVersion}\")?");
 		}
 
-		#region Code handlers
+		#region Commands
 
 		#region jump ...
 
 		private void Jump(string label)
 		{
 			if (label.IsEmpty) throw new InvalidCodeException(currentLine, CodeError.ArgumentsRequired, CommandUsage.Jump);
-			else if (!lineByLabel.TryGetValue(label, out int line)) throw new InvalidCodeException(currentLine, CodeError.LabelNotFound);
+			else if (!lineByLabel.TryGetValue(label, out int line)) throw new InvalidCodeException(currentLine, CodeError.LabelNotFound, $"There is no label named \"{label}\". Have you made a typo?");
 			else currentLine = line;
 		}
 
@@ -183,14 +192,15 @@ internal sealed partial class ScriptEnvironment
 
 			string[] @params = args.Split(';');
 			if (@params.Length != 3) throw new InvalidCodeException(currentLine, CodeError.InvalidArguments, CommandUsage.JumpIfEqualsExact);
-			(string label, string valueName, string compareValue) = (@params[0].Trim(), @params[1].Trim(), @params[2]);
+			(string label, string valueName, string compareString) = (@params[0].Trim(), @params[1].Trim(), @params[2]);
 
-			if (label.IsEmpty) throw new InvalidCodeException(currentLine, CodeError.InvalidLabelName);
-			if (valueName.IsEmpty) throw new InvalidCodeException(currentLine, CodeError.InvalidValueName);
+			if (label.IsEmpty) throw new InvalidCodeException(currentLine, CodeError.InvalidArguments, CommandUsage.JumpIfEqualsExact);
+			if (valueName.IsEmpty) throw new InvalidCodeException(currentLine, CodeError.InvalidArguments, CommandUsage.JumpIfEqualsExact);
 
-			if (!valueByName.TryGetValue(valueName, out string? valueContent)) throw new InvalidCodeException(currentLine, CodeError.ValueNotFound);
+			if (!valueByName.TryGetValue(valueName, out string? valueContent))
+				throw new InvalidCodeException(currentLine, CodeError.ValueNotFound, $"There is no value named \"{valueName}\". Have you made a typo?");
 
-			if (valueContent == compareValue)
+			if (valueContent == compareString)
 				try
 				{
 					Jump(label);
@@ -209,11 +219,11 @@ internal sealed partial class ScriptEnvironment
 			if (@params.Length != 3) throw new InvalidCodeException(currentLine, CodeError.InvalidArguments, CommandUsage.JumpIfEqualsExpression);
 			(string label, string valueName, string expression) = (@params[0].Trim(), @params[1].Trim(), @params[2]);
 
-			if (label.IsEmpty) throw new InvalidCodeException(currentLine, CodeError.InvalidLabelName);
-			if (valueName.IsEmpty) throw new InvalidCodeException(currentLine, CodeError.InvalidValueName);
+			if (label.IsEmpty) throw new InvalidCodeException(currentLine, CodeError.InvalidArguments, CommandUsage.JumpIfEqualsExpression);
+			if (valueName.IsEmpty) throw new InvalidCodeException(currentLine, CodeError.InvalidArguments, CommandUsage.JumpIfEqualsExpression);
 
-			if (!valueByName.TryGetValue(valueName, out string? valueContent)) throw new InvalidCodeException(currentLine, CodeError.ValueNotFound);
-			if (valueContent is null) throw new InvalidCodeException(currentLine);
+			if (!valueByName.TryGetValue(valueName, out string? valueContent))
+				throw new InvalidCodeException(currentLine, CodeError.ValueNotFound, $"There is no value named \"{valueName}\". Have you made a typo?");
 
 			if (Regex.IsMatch(valueContent, expression))
 				try
@@ -238,24 +248,24 @@ internal sealed partial class ScriptEnvironment
 			if (@params.Length != 2) throw new InvalidCodeException(currentLine, CodeError.InvalidArguments, CommandUsage.SetValueLine);
 			(string valueName, string valueContent) = (@params[0].Trim(), @params[1]);
 
-			if (valueName.IsEmpty || !valueName.IsAlphanumericWithUnderscores) throw new InvalidCodeException(currentLine, CodeError.InvalidValueName);
+			if (!valueName.IsAlphanumericWithUnderscores)
+				throw new InvalidCodeException(currentLine, CodeError.InvalidValueName, $"Value \"{valueName}\" violates value naming rules: only numbers (0-9), Latin letters (A-Z) and underscores are permitted.");
 
 			valueByName[valueName] = valueContent;
 		}
 
 		private void SetValueJoin(string args)
 		{
-			if (args.IsEmptyOrWhitespace) throw new InvalidCodeException(currentLine, CodeError.ArgumentsRequired, CommandUsage.SetValueJoin);
+			if (args.IsEmpty) throw new InvalidCodeException(currentLine, CodeError.ArgumentsRequired, CommandUsage.SetValueJoin);
 
 			string[] @params = args.Split(';', StringSplitOptions.TrimEntries);
-			if (@params.Contains(string.Empty) || @params.Length < 2) throw new InvalidCodeException(currentLine, CodeError.InvalidArguments, CommandUsage.SetValueJoin);
+			if (@params.Length < 2) throw new InvalidCodeException(currentLine, CodeError.InvalidArguments, CommandUsage.SetValueJoin);
 
 			string receiverValue = @params[0], result = string.Empty;
-			if (!receiverValue.IsAlphanumericWithUnderscores) throw new InvalidCodeException(currentLine, CodeError.InvalidValueName);
 
 			foreach (string senderValue in @params[1..])
-				if (!senderValue.IsAlphanumericWithUnderscores) throw new InvalidCodeException(currentLine, CodeError.InvalidValueName);
-				else if (!valueByName.TryGetValue(senderValue, out string? senderValueContent)) throw new InvalidCodeException(currentLine, CodeError.ValueNotFound);
+				if (!valueByName.TryGetValue(senderValue, out string? senderValueContent))
+					throw new InvalidCodeException(currentLine, CodeError.ValueNotFound, $"There is no value named \"{senderValue}\". Have you made a typo?");
 				else result += senderValueContent;
 
 			try
@@ -276,8 +286,9 @@ internal sealed partial class ScriptEnvironment
 
 		private void PrintValue(string valueName)
 		{
-			if (valueName.IsEmptyOrWhitespace) throw new InvalidCodeException(currentLine, CodeError.ArgumentsRequired, CommandUsage.PrintValue);
-			else if (!valueByName.TryGetValue(valueName, out string? valueContent)) throw new InvalidCodeException(currentLine, CodeError.ValueNotFound);
+			if (valueName.IsEmpty) throw new InvalidCodeException(currentLine, CodeError.ArgumentsRequired, CommandUsage.PrintValue);
+			else if (!valueByName.TryGetValue(valueName, out string? valueContent))
+				throw new InvalidCodeException(currentLine, CodeError.ValueNotFound, $"There is no value named \"{valueName}\". Have you made a typo?");
 			else Print(valueContent);
 		}
 
@@ -285,8 +296,9 @@ internal sealed partial class ScriptEnvironment
 
 		private void PrintValueLine(string valueName)
 		{
-			if (valueName.IsEmptyOrWhitespace) throw new InvalidCodeException(currentLine, CodeError.ArgumentsRequired, CommandUsage.PrintValueLine);
-			else if (!valueByName.TryGetValue(valueName, out string? valueContent)) throw new InvalidCodeException(currentLine, CodeError.ValueNotFound);
+			if (valueName.IsEmpty) throw new InvalidCodeException(currentLine, CodeError.ArgumentsRequired, CommandUsage.PrintValueLine);
+			else if (!valueByName.TryGetValue(valueName, out string? valueContent))
+				throw new InvalidCodeException(currentLine, CodeError.ValueNotFound, $"There is no value named \"{valueName}\". Have you made a typo?");
 			else PrintLine(valueContent);
 		}
 
@@ -296,7 +308,7 @@ internal sealed partial class ScriptEnvironment
 
 		private void AskPause(string _)
 		{
-			if (!_.IsEmptyOrWhitespace) throw new InvalidCodeException(currentLine, CodeError.NoArgumentsRequired, CommandUsage.AskPause);
+			if (!_.IsEmpty) throw new InvalidCodeException(currentLine, CodeError.NoArgumentsRequired, CommandUsage.AskPause);
 			Console.ReadKey(false);
 		}
 
@@ -340,8 +352,9 @@ internal sealed partial class ScriptEnvironment
 
 		private void ExecuteProcessValue(string valueName)
 		{
-			if (valueName.IsEmptyOrWhitespace) throw new InvalidCodeException(currentLine, CodeError.ArgumentsRequired, CommandUsage.ExecuteProcessValue);
-			else if (!valueByName.TryGetValue(valueName, out string? valueContent)) throw new InvalidCodeException(currentLine, CodeError.ValueNotFound);
+			if (valueName.IsEmpty) throw new InvalidCodeException(currentLine, CodeError.ArgumentsRequired, CommandUsage.ExecuteProcessValue);
+			else if (!valueByName.TryGetValue(valueName, out string? valueContent))
+				throw new InvalidCodeException(currentLine, CodeError.ValueNotFound, $"There is no value named \"{valueName}\". Have you made a typo?");
 			else
 				try
 				{
@@ -377,9 +390,18 @@ internal sealed partial class ScriptEnvironment
 
 		private void ExecuteProcessValueWait(string valueName)
 		{
-			if (valueName.IsEmptyOrWhitespace) throw new InvalidCodeException(currentLine, CodeError.ArgumentsRequired, CommandUsage.ExecuteProcessValueWait);
-			else if (!valueByName.TryGetValue(valueName, out string? valueContent)) throw new InvalidCodeException(currentLine, CodeError.ValueNotFound);
-			else ExecuteProcessWait(valueContent);
+			if (valueName.IsEmpty) throw new InvalidCodeException(currentLine, CodeError.ArgumentsRequired, CommandUsage.ExecuteProcessValueWait);
+			else if (!valueByName.TryGetValue(valueName, out string? valueContent))
+				throw new InvalidCodeException(currentLine, CodeError.ValueNotFound, $"There is no value named \"{valueName}\". Have you made a typo?");
+			else
+				try
+				{
+					ExecuteProcessWait(valueContent);
+				}
+				catch
+				{
+					throw;
+				}
 		}
 
 		#endregion

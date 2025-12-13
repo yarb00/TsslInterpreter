@@ -10,9 +10,11 @@ internal enum CodeError
 {
 	Unknown,
 	InvalidInstruction,
-	InvalidCommandName, CommandNotFound, InvalidArguments, ArgumentsRequired, NoArgumentsRequired,
-	InvalidValueName, ValueNotFound,
-	InvalidLabelName, LabelNotFound, LabelAlreadyDefined
+	LanguageVersionAlreadySet,
+	InvalidArguments, ArgumentsRequired, NoArgumentsRequired,
+	InvalidCommandName, InvalidValueName, InvalidLabelName,
+	CommandNotFound, ValueNotFound, LabelNotFound,
+	LabelAlreadyDefined
 }
 
 internal sealed class InvalidCodeException : Exception
@@ -25,54 +27,42 @@ internal sealed class InvalidCodeException : Exception
 
 	private static readonly FrozenDictionary<CodeError, string> messageByCodeError = new Dictionary<CodeError, string>()
 	{
-		[CodeError.Unknown] = "An error occurred",
+		[CodeError.Unknown] = "An error occurred.",
 
-		[CodeError.InvalidInstruction] = "Syntax is not valid",
+		[CodeError.InvalidInstruction] = "Syntax is not valid.",
 
-		[CodeError.InvalidArguments] = "Passed arguments are in invalid format or do not make sense",
-		[CodeError.ArgumentsRequired] = "No arguments were passed but command requires them",
-		[CodeError.NoArgumentsRequired] = "Arguments were passed but command does not accept any",
+		[CodeError.LanguageVersionAlreadySet] = "Language version is already set.",
 
-		[CodeError.InvalidCommandName] = "Command name is not valid",
-		[CodeError.InvalidValueName] = "Value name is not valid",
-		[CodeError.InvalidLabelName] = "Label name is not valid",
+		[CodeError.InvalidArguments] = "Arguments are in the invalid format or do not make sense.",
+		[CodeError.ArgumentsRequired] = "No arguments were passed but command requires them.",
+		[CodeError.NoArgumentsRequired] = "Arguments were passed but command does not accept any.",
 
-		[CodeError.CommandNotFound] = "Specified command is not found",
-		[CodeError.ValueNotFound] = "Specified value is not found",
-		[CodeError.LabelNotFound] = "Specified label is not found",
+		[CodeError.InvalidCommandName] = "Command name is not valid.",
+		[CodeError.InvalidValueName] = "Value name is not valid.",
+		[CodeError.InvalidLabelName] = "Label name is not valid.",
 
-		[CodeError.LabelAlreadyDefined] = "Label with this name is already defined"
+		[CodeError.CommandNotFound] = "Specified command is not found.",
+		[CodeError.ValueNotFound] = "Specified value is not found.",
+		[CodeError.LabelNotFound] = "Specified label is not found.",
+
+		[CodeError.LabelAlreadyDefined] = "Label with this name is already defined."
 	}.ToFrozenDictionary();
 
-	private static readonly FrozenDictionary<CodeError, string?> defaultDetailsByCodeError = new Dictionary<CodeError, string?>()
-	{
-		[CodeError.InvalidCommandName] = "Command name can only contain numbers, Latin letters and spaces",
-		[CodeError.InvalidValueName] = "Value name can only contain numbers, Latin letters and underscores",
-		[CodeError.InvalidLabelName] = "Label name can only contain numbers, Latin letters and underscores"
-	}.ToFrozenDictionary();
+	private InvalidCodeException() : base() { }
 
 	public InvalidCodeException(
 		int line,
 		CodeError reason = CodeError.Unknown,
 		string? details = null
-	) : this($"Error on line {line}: {messageByCodeError[reason]}.{GetDetails(reason, details)}") =>
-		(Line, Reason, Details) = (line, reason, details);
+	) : base($"""
+		= Error on line {line}: =
+		{messageByCodeError[reason]}{FormatDetails(details)}
+		""") => (Line, Reason, Details) = (line, reason, details);
 
-	private InvalidCodeException() : base() { }
+	private static string FormatDetails(string? details) => details is null ? string.Empty
+		: $"""
 
-	private InvalidCodeException(string? message) : base(message) { }
-
-	private static string GetDetails(CodeError reason, string? details)
-	{
-		if (details is null)
-		{
-			if (!defaultDetailsByCodeError.TryGetValue(reason, out string? value)) return string.Empty;
-
-			details = value;
-		}
-
-		if (details is null) return string.Empty;
-
-		return $" Details: \"{details}\"";
-	}
+		= Details: =
+		{details}
+		""";
 }

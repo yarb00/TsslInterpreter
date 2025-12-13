@@ -55,7 +55,7 @@ internal sealed partial class ScriptEnvironment(string[] script)
 
 		if (instruction.StartsWith("!TooSimpleScriptingLanguage", StringComparison.OrdinalIgnoreCase))
 		{
-			switch (instruction[("!TooSimpleScriptingLanguage".Length + 1)..].Trim().ToLowerInvariant())
+			switch (instruction[("!TooSimpleScriptingLanguage".Length + 1)..].Trim().ToLower())
 			{
 				case "0.5": executor = new ScriptEnvironmentV0_5(script); break;
 
