@@ -1,0 +1,29 @@
+!TooSimpleScriptingLanguage 0.5
+
+# https://tssl.yarb00.dev
+
+# jump> [label name]
+# Continue code execution from a line with the specified label.
+
+# jump if equals exact> [label name];[value name];[text]
+# If value [value name] is set to [text], run "jump> [label name]"; otherwise, do nothing.
+
+# jump if equals expression> [label name];[value name];[regex]
+# If value [value name] matches [regex], run "jump> [label name]"; otherwise, do nothing.
+
+@ask
+print> Greet (y/N)?:
+ask value line> answer
+
+jump if equals expression> continue;answer;^[yY]$
+jump if equals expression> end;answer;^[nN]$
+# If user pressed Enter without any input, treat it as no.
+jump if equals exact> end;answer;
+
+# If answer is not 'y', 'Y', 'n', 'N' or nothing, ask again.
+jump> ask
+
+@continue
+print line> Hi!
+
+@end

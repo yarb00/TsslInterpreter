@@ -28,7 +28,7 @@ jobs:
     runs-on: ${{ matrix.os.runner_name }}
     steps:
       - name: Checkout
-        uses: actions/checkout@v5
+        uses: actions/checkout@v6
         with:
           fetch-depth: 1
       - name: Setup .NET
@@ -39,7 +39,7 @@ jobs:
       - name: Build
         run: dotnet publish -r ${{ matrix.os.dotnet_rid }}
       - name: Upload build artifacts
-        uses: actions/upload-artifact@v5
+        uses: actions/upload-artifact@v6
         with:
           name: TsslInterpreter_${{ matrix.os.dotnet_rid }}
           path: src/bin/Release/net10.0/${{ matrix.os.dotnet_rid }}/publish

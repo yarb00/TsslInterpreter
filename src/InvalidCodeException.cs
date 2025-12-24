@@ -10,6 +10,7 @@ internal enum CodeError
 {
 	Unknown,
 	InvalidInstruction,
+	LanguageVersionNotSet,
 	LanguageVersionAlreadySet,
 	InvalidArguments, ArgumentsRequired, NoArgumentsRequired,
 	InvalidCommandName, InvalidValueName, InvalidLabelName,
@@ -31,6 +32,7 @@ internal sealed class InvalidCodeException : Exception
 
 		[CodeError.InvalidInstruction] = "Syntax is not valid.",
 
+		[CodeError.LanguageVersionNotSet] = "Only comments can be present before the language version declaration.",
 		[CodeError.LanguageVersionAlreadySet] = "Language version is already set.",
 
 		[CodeError.InvalidArguments] = "Arguments are in the invalid format or do not make sense.",
@@ -45,7 +47,7 @@ internal sealed class InvalidCodeException : Exception
 		[CodeError.ValueNotFound] = "Specified value is not found.",
 		[CodeError.LabelNotFound] = "Specified label is not found.",
 
-		[CodeError.LabelAlreadyDefined] = "Label with this name is already defined."
+		[CodeError.LabelAlreadyDefined] = "Label with the same name is already defined."
 	}.ToFrozenDictionary();
 
 	private InvalidCodeException() : base() { }
@@ -54,15 +56,5 @@ internal sealed class InvalidCodeException : Exception
 		int line,
 		CodeError reason = CodeError.Unknown,
 		string? details = null
-	) : base($"""
-		= Error on line {line}: =
-		{messageByCodeError[reason]}{FormatDetails(details)}
-		""") => (Line, Reason, Details) = (line, reason, details);
-
-	private static string FormatDetails(string? details) => details is null ? string.Empty
-		: $"""
-
-		= Details: =
-		{details}
-		""";
+	) : base(messageByCodeError[reason]) => (Line, Reason, Details) = (line, reason, details);
 }

@@ -1,0 +1,7 @@
+!TooSimpleScriptingLanguage 0.5
+
+# https://tssl.yarb00.dev
+
+print> What do you want to run today?:
+ask value line> command
+execute process value wait> command

@@ -1,0 +1,18 @@
+!TooSimpleScriptingLanguage 0.5
+
+# https://tssl.yarb00.dev
+
+print> Your name:
+ask value line> name
+
+print value> name
+print line> ? Welcome!
+
+print> Your age:
+ask value line> age
+
+print value> age
+print line> ? ok :D
+
+print line> Press any key to exit.
+ask pause>

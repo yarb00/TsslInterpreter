@@ -1,0 +1,25 @@
+!TooSimpleScriptingLanguage 0.5
+
+# https://tssl.yarb00.dev
+
+# who = "World"
+set value line> who;World
+print value> who
+print line> , hello!
+
+print> TSSL version:
+print value line> _language_version
+
+print> Name of your interpreter:
+print value line> _interpreter_name
+
+print> Version of your interpreter:
+print value line> _interpreter_version
+
+print> Website of your interpreter:
+print value line> _interpreter_website
+
+print value> who
+print line> , bye!
+
+ask pause>

@@ -23,7 +23,7 @@ ask line> answer
 
 <continue ?matches: \(answer);^[yY]$
 <end ?matches: \(answer);^[nN]$
-# If user pressed Enter without any input, treat it as no
+# If user pressed Enter without any input, treat it as no.
 <end ?equals: \(answer);
 
 # If answer is not 'y', 'Y', 'n', 'N' or nothing, ask again.

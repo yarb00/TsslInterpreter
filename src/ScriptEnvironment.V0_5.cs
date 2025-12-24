@@ -51,7 +51,7 @@ internal sealed partial class ScriptEnvironment
 		private readonly Dictionary<string, string> valueByName = new(StringComparer.OrdinalIgnoreCase)
 		{
 			["_language_version"] = languageVersion,
-			["_interpreter_name"] = Program.Name,
+			["_interpreter_name"] = Program.FriendlyName,
 			["_interpreter_website"] = Program.Website,
 			["_interpreter_version"] = Program.FriendlyVersion
 		};
