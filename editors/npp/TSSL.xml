@@ -13,7 +13,7 @@
             <Keywords name="Numbers, suffix1"></Keywords>
             <Keywords name="Numbers, suffix2"></Keywords>
             <Keywords name="Numbers, range"></Keywords>
-            <Keywords name="Operators1">&lt; &gt; ; :</Keywords>
+            <Keywords name="Operators1">&lt; &gt; ; : \</Keywords>
             <Keywords name="Operators2"></Keywords>
             <Keywords name="Folders in code1, open"></Keywords>
             <Keywords name="Folders in code1, middle"></Keywords>
@@ -24,9 +24,9 @@
             <Keywords name="Folders in comment, open"></Keywords>
             <Keywords name="Folders in comment, middle"></Keywords>
             <Keywords name="Folders in comment, close"></Keywords>
-            <Keywords name="Keywords1">&quot;set&quot;&#x000D;&#x000A;&quot;print&quot;&#x000D;&#x000A;&quot;print line&quot;&#x000D;&#x000A;&quot;ask pause&quot;&#x000D;&#x000A;&quot;ask line&quot;&#x000D;&#x000A;&quot;execute&quot;&#x000D;&#x000A;&quot;execute wait&quot;</Keywords>
-            <Keywords name="Keywords2">&quot;_language_version&quot;&#x000D;&#x000A;&quot;_interpreter_name&quot;&#x000D;&#x000A;&quot;_interpreter_website&quot;&#x000D;&#x000A;&quot;_interpreter_version&quot;&#x000D;&#x000A;&quot;_last_execute_status&quot;</Keywords>
-            <Keywords name="Keywords3">&quot;?not&quot;&#x000D;&#x000A;&quot;?equals&quot;&#x000D;&#x000A;&quot;?matches&quot;</Keywords>
+            <Keywords name="Keywords1">&quot;set value&quot;&#x000D;&#x000A;&quot;print&quot;&#x000D;&#x000A;&quot;print line&quot;&#x000D;&#x000A;&quot;ask pause&quot;&#x000D;&#x000A;&quot;ask line&quot;&#x000D;&#x000A;&quot;execute&quot;&#x000D;&#x000A;&quot;execute wait&quot;</Keywords>
+            <Keywords name="Keywords2">&quot;_language_version&quot;&#x000D;&#x000A;&quot;_interpreter_name&quot;&#x000D;&#x000A;&quot;_interpreter_website&quot;&#x000D;&#x000A;&quot;_interpreter_license&quot;&#x000D;&#x000A;&quot;_interpreter_version&quot;&#x000D;&#x000A;&quot;_last_execute_status&quot;</Keywords>
+            <Keywords name="Keywords3">&quot;?equals&quot;&#x000D;&#x000A;&quot;?matches&quot;&#x000D;&#x000A;&quot;?not equals&quot;&#x000D;&#x000A;&quot;?not matches&quot;</Keywords>
             <Keywords name="Keywords4"></Keywords>
             <Keywords name="Keywords5"></Keywords>
             <Keywords name="Keywords6"></Keywords>

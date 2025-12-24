@@ -11,10 +11,10 @@
 # <[label name] ?matches: [text];[regex]
 # If [text] matches [regex], run "<[label name]"; otherwise, do nothing.
 
-# <[label name] ?not: ?equals: [text1];[text2]
+# <[label name] ?not equals: [text1];[text2]
 # If [text1] is different from [text2], run "<[label name]"; otherwise, do nothing.
 
-# <[label name] ?not: ?matches: [text];[regex]
+# <[label name] ?not matches: [text];[regex]
 # If [text] does NOT match [regex], run "<[label name]"; otherwise, do nothing.
 
 @ask
