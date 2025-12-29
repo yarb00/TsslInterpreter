@@ -1,0 +1,20 @@
+!TooSimpleScriptingLanguage 0.6
+
+# https://tssl.yarb00.dev
+
+# who = "world"
+set value> who;world
+print line> Hello, \(who)!
+
+print line> TSSL version: \(_language_version)
+print line> Your interpreter: \(_interpreter_name) v\(_interpreter_version)\; more info at \(_interpreter_website)
+
+print line>
+print line> === License of your interpreter: ===
+print line> \(_interpreter_license)
+print line> === End of license ===
+print line>
+
+print line> Bye, \(who)!
+
+ask pause>

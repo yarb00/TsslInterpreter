@@ -1,0 +1,38 @@
+!TooSimpleScriptingLanguage 0.6
+
+# Print text and a new line character(s), LF or CR+LF.
+print line> Hi! I'm a script that uses TSSL v0.6!
+# An empty line.
+print line>
+
+@ask
+# Print text as it is (without beginning a new line).
+print> [whoami/greet/exit]:
+# Read user input and save it to the value (variable) named "option".
+ask line> option
+# If user input is "whoami", jump to the "print_user" label.
+<print_user ?equals: \(option);whoami
+# If user input is "greet", jump to the "greet" label.
+<greet ?equals: \(option);greet
+# If user input is "exit", jump to the "end" label.
+<end ?equals: \(option);exit
+# Otherwise, ask for input again (jump back to the "ask" label).
+<ask
+
+@print_user
+# Run the "whoami" command and pause execution of the script until it finishes.
+execute wait> whoami
+# If whoami ran successfully (did not exit with 0), ask for input again.
+<ask ?equals: \(_last_execute_status);0
+# If it returned a non-zero code, let user know.
+print line> An error occurred.
+# And only then ask for input.
+<ask
+
+@greet
+print> Your name:
+ask line> name
+print line> \(name), hi!
+<ask
+
+@end

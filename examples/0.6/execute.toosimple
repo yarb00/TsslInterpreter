@@ -4,4 +4,4 @@
 
 print> What do you want to run today?:
 ask line> command
-execute wait> \{command}
+execute wait> \(command)

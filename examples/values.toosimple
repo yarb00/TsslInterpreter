@@ -1,9 +1,0 @@
-!TooSimpleScriptingLanguage 0.6
-
-# https://tssl.yarb00.dev
-
-print line> TSSL version: \{_language_version}
-print line> Your interpreter: \{_interpreter_name} v\{_interpreter_version}
-print line> Website of your interpreter: \{_interpreter_website}
-
-ask pause>
