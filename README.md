@@ -22,10 +22,14 @@ If you're using a different platform, you can build TSSL::Interpreter yourself.
 
 ### Build yourself
 
-1. Install the latest [Git](https://git-scm.com/downloads) and the latest [.NET SDK](https://dot.net/download) (version 10 or higher), if you don't have them already.
+> [!IMPORTANT]
+> These instructions are for the release build. During development, use `dotnet build`/`dotnet run` for debug builds.
+
+1. Install the latest [Git](https://git-scm.com/downloads) and the latest [.NET SDK](https://dot.net/download) (of version 10 or higher), if you don't have them already.
 2. Make sure that you have `git` and `dotnet` available in your PATH.
-3. Clone the source code with `git clone https://github.com/yarb00/TsslInterpreter.git` (you can also use SSH or git:// protocol).
-4. `cd TsslInterpreter`
-5. (Optional): Run `git checkout v<A>.<B>.<C>` to build a specific release. Otherwise, the latest commit will be used (which can be ahead of the latest version).
-6. Build the project with `dotnet publish -r <RID>`. See the [list of RIDs](https://learn.microsoft.com/en-us/dotnet/core/rid-catalog#known-rids) and replace `<RID>` with the right one.
-7. The executable will be placed in `<project directory>/src/bin/Release/net10.0/<RID>/publish`.
+3. Clone the source code with `git clone https://github.com/yarb00/TsslInterpreter.git <DIR_NAME>` (`<DIR_NAME>` is optional; you can also use SSH or git:// protocol instead of HTTPS).
+4. `cd <DIR_NAME>` (if you didn't specify `<DIR_NAME>`, it's `TsslInterpreter`).
+5. Recommended: Run `git switch v<A>.<B>.<C> --detach` to build a specific release (replace `<A>.<B>.<C>` with a version number); otherwise, the latest commit will be used (which can be ahead of the latest version).
+6. Build the project with `dotnet publish -r <RID>`. See [the list of Runtime Identifiers](https://learn.microsoft.com/en-us/dotnet/core/rid-catalog#known-rids) and replace `<RID>` with the right one.
+7. The executable will be placed in `<DIR_NAME>/src/bin/Release/net10.0/<RID>/publish`; it's natively compiled, so you can safely delete .NET SDK if you're not planning to use it for anything else.
+8. Optionally: rename `TsslInterpreter`/`TsslInterpreter.exe` to `tssl`/`tssl.exe` and copy it somewhere, then add it to your PATH.
