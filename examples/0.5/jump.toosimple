@@ -1,3 +1,5 @@
+#!/usr/bin/env tssl
+
 !TooSimpleScriptingLanguage 0.5
 
 # https://tssl.yarb00.dev
