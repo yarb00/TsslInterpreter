@@ -12,8 +12,11 @@ on:
       - master
 
 jobs:
+
   release:
+
     name: Publish (Release)
+
     strategy:
       matrix:
         os:
@@ -25,22 +28,40 @@ jobs:
             dotnet_rid: osx-x64
           - runner_name: macos-15
             dotnet_rid: osx-arm64
+
     runs-on: ${{ matrix.os.runner_name }}
+
+    env:
+      OUTPUT_PATH: src/bin/Release/net10.0/${{ matrix.os.dotnet_rid }}/publish
+
     steps:
+
       - name: Checkout
-        uses: actions/checkout@v5
+        uses: actions/checkout@v6
         with:
           fetch-depth: 1
+
       - name: Setup .NET
         uses: actions/setup-dotnet@v5
         with:
           dotnet-version: 10.0.1xx
           dotnet-quality: ga
+
       - name: Build
         run: dotnet publish -r ${{ matrix.os.dotnet_rid }}
+
+      - name: Rename executable file (Windows)
+        if: runner.os == 'Windows'
+        run: Move-Item ${{ env.OUTPUT_PATH }}/TsslInterpreter.exe ${{ env.OUTPUT_PATH }}/tssl.exe
+        shell: pwsh
+
+      - name: Rename executable file (Linux/macOS)
+        if: runner.os != 'Windows'
+        run: mv ${{ env.OUTPUT_PATH }}/TsslInterpreter ${{ env.OUTPUT_PATH }}/tssl
+
       - name: Upload build artifacts
-        uses: actions/upload-artifact@v5
+        uses: actions/upload-artifact@v6
         with:
-          name: TsslInterpreter (${{ matrix.os.runner_name }}) (Release) (${{ matrix.os.dotnet_rid }})
-          path: src/bin/Release/net10.0/${{ matrix.os.dotnet_rid }}/publish
+          name: TsslInterpreter_${{ matrix.os.dotnet_rid }}
+          path: ${{ env.OUTPUT_PATH }}
           if-no-files-found: error
