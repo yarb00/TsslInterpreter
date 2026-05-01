@@ -58,6 +58,7 @@ internal sealed partial class ScriptEnvironment(string[] script)
 			switch (instruction[("!TooSimpleScriptingLanguage".Length + 1)..].Trim().ToLower())
 			{
 				case "0.5": executor = new ScriptEnvironmentV0_5(script); break;
+				case "0.6": executor = new ScriptEnvironmentV0_6(script); break;
 
 				default: Program.Panic(CriticalError.NotSupportedLanguageVersion); break;
 			}

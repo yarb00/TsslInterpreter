@@ -26,7 +26,7 @@ internal static class Program
 	public const string FriendlyName = "TSSL::Interpreter";
 	public const string Website = "https://tssl.yarb00.dev";
 	public const string License = """
-		Copyright (c) 2025 yarb00
+		Copyright (c) 2025-2026 yarb00
 
 		Permission is hereby granted, free of charge, to any person obtaining a copy of this software and associated documentation files (the "Software"), to deal in the Software without restriction, including without limitation the rights to use, copy, modify, merge, publish, distribute, sublicense, and/or sell copies of the Software, and to permit persons to whom the Software is furnished to do so, subject to the following conditions:
 
@@ -194,15 +194,20 @@ internal static class Program
 
 	public static void Exit(string message = "", int exitCode = 0, bool shouldKillProcess = true)
 	{
-		if (!message.IsEmpty)
+		if (!message.IsEmptyOrWhitespace || exitCode != 0)
 		{
 			Console.WriteLine();
 			Console.WriteLine(new string('=', title.Length));
 
-			if (exitCode == 0) Console.WriteLine($"{FriendlyName} exited:");
-			else Console.WriteLine($"{FriendlyName} exited with code {exitCode}:");
+			if (exitCode == 0) Console.Write($"{FriendlyName} exited");
+			else Console.Write($"{FriendlyName} exited with code {exitCode}");
 
-			Console.WriteLine(message);
+			if (message.IsEmptyOrWhitespace) Console.WriteLine('.');
+			else
+			{
+				Console.WriteLine(':');
+				Console.WriteLine(message);
+			}
 		}
 
 		if (shouldKillProcess) Environment.Exit(exitCode);

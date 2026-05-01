@@ -10,11 +10,10 @@ internal enum CodeError
 {
 	Unknown,
 	InvalidInstruction,
-	LanguageVersionNotSet,
-	LanguageVersionAlreadySet,
+	LanguageVersionNotSet, LanguageVersionAlreadySet,
 	InvalidArguments, ArgumentsRequired, NoArgumentsRequired,
-	InvalidCommandName, InvalidValueName, InvalidLabelName,
-	CommandNotFound, ValueNotFound, LabelNotFound,
+	InvalidCommandName, InvalidValueName, InvalidLabelName, InvalidConditionName,
+	CommandNotFound, ValueNotFound, LabelNotFound, ConditionNotFound,
 	LabelAlreadyDefined
 }
 
@@ -36,7 +35,7 @@ internal sealed class InvalidCodeException : Exception
 		[CodeError.LanguageVersionAlreadySet] = "Language version is already set.",
 
 		[CodeError.InvalidArguments] = "Arguments are in the invalid format or do not make sense.",
-		[CodeError.ArgumentsRequired] = "No arguments were passed but command requires them.",
+		[CodeError.ArgumentsRequired] = "No arguments were passed but command/condition requires them.",
 		[CodeError.NoArgumentsRequired] = "Arguments were passed but command does not accept any.",
 
 		[CodeError.InvalidCommandName] = "Command name is not valid.",
