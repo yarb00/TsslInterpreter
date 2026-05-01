@@ -233,9 +233,33 @@ internal sealed partial class ScriptEnvironment
 			else currentLine = line;
 		}
 
-		private (string label, string? condition, string[] arguments) ParseJump(string instruction) // "a;b1\;b2;\(var)\\c" where 'var' equals "test" => ["a", "b1;b2", @"test\c"]
+		private (string label, string? condition, string[] arguments) ParseJump(string instruction)
 		{
-			throw new NotImplementedException();
+			instruction = instruction[1..].TrimStart(); // Trim '<'
+
+			if (!instruction.TrimEnd().Contains(' ')) // If jump instruction doesn't contain a condition
+				return (instruction.TrimEnd(), null, []);
+
+			string label = instruction[..instruction.IndexOf(' ')]; // Before ' '
+			instruction = instruction[instruction.IndexOf(' ')..].TrimStart(); // Trim label
+
+			if (!instruction.Contains('?') || !instruction.Contains(':')) throw new InvalidCodeException(currentLine, CodeError.InvalidInstruction);
+
+			string condition = instruction[(instruction.IndexOf('?') + 1)..instruction.IndexOf(':')].Trim();
+			instruction = instruction[(instruction.IndexOf(':') + 1 + 1)..]; // Trim condition
+
+			string[] arguments;
+
+			try
+			{
+				arguments = ParseArguments(instruction);
+			}
+			catch
+			{
+				throw;
+			}
+
+			return (label, condition, arguments);
 		}
 
 		private string[] ParseArguments(string rawArguments) // "a;b1\;b2;\(var)\\c" where 'var' equals "test" => ["a", "b1;b2", @"test\c"]
