@@ -264,7 +264,65 @@ internal sealed partial class ScriptEnvironment
 
 		private string[] ParseArguments(string rawArguments) // "a;b1\;b2;\(var)\\c" where 'var' equals "test" => ["a", "b1;b2", @"test\c"]
 		{
-			throw new NotImplementedException();
+			string[] arguments = rawArguments.Split(';');
+			List<string> temporary = [];
+			for (int i = 0; i < arguments.Length; i++)
+			{
+				if (!arguments[i].EndsWith('\\'))
+				{
+					temporary.Add(arguments[i]);
+					continue;
+				}
+
+				temporary.Add(arguments[i][..^1] + ';' + arguments[i + 1]);
+
+				if (arguments.Length != i + 1)
+					foreach (string @string in arguments[(i + 2)..])
+						temporary.Add(@string);
+
+				arguments = temporary.ToArray();
+				temporary.Clear();
+
+				i = -1;
+			}
+
+			for (int argumentIndex = 0; argumentIndex < arguments.Length; argumentIndex++)
+			{
+				string argument = arguments[argumentIndex], result = string.Empty;
+				bool insideEscapeSequence = false;
+				for (int i = 0; i < argument.Length; i++)
+				{
+					if (!insideEscapeSequence && argument[i] == '\\')
+					{
+						insideEscapeSequence = true;
+						continue;
+					}
+					else if (insideEscapeSequence && argument[i] == '\\')
+					{
+						insideEscapeSequence = false;
+						result += '\\';
+					}
+					else if (insideEscapeSequence && argument[i] == '(')
+					{
+						int endIndex = argument.IndexOf(')', i);
+						string valueName = argument[(i + 1)..endIndex].Trim();
+
+						if (!valueByName.TryGetValue(valueName, out string? valueContent))
+							throw new InvalidCodeException(currentLine, CodeError.ValueNotFound, $"There is no value named \"{valueName}\". Have you made a typo?");
+
+						result += valueContent;
+						i = endIndex;
+						insideEscapeSequence = false;
+
+						continue;
+					}
+					else if (insideEscapeSequence) throw new InvalidCodeException(currentLine, CodeError.InvalidInstruction, $"Escape sequence '\\{argument[i]}' does not exist.");
+					else result += argument[i];
+				}
+				arguments[argumentIndex] = result;
+			}
+
+			return arguments;
 		}
 
 		#region Conditions
