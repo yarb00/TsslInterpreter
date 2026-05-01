@@ -327,7 +327,7 @@ internal sealed partial class ScriptEnvironment
 
 		private void PrintLine(string[] args)
 		{
-			if (args.Length == 0) throw new InvalidCodeException(currentLine, CodeError.ArgumentsRequired, CommandUsage.PrintLine);
+			if (args.Length == 0) Console.WriteLine();
 			else if (args.Length == 1) Console.WriteLine(args[0]);
 			else throw new InvalidCodeException(currentLine, CodeError.InvalidArguments, CommandUsage.PrintLine);
 		}
