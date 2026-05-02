@@ -360,21 +360,21 @@ internal sealed partial class ScriptEnvironment
 
 		#region Conditions
 
-		private bool IsTrue_Equals(string[] args)
+		private bool IsTrue_Equals(params string[] args)
 		{
 			if (args.Length == 0) throw new InvalidCodeException(currentLine, CodeError.ArgumentsRequired, Usage.EqualsCondition);
 			if (args.Length != 2) throw new InvalidCodeException(currentLine, CodeError.InvalidArguments, Usage.EqualsCondition);
 			return args[0] == args[1];
 		}
 
-		private bool IsTrue_Matches(string[] args)
+		private bool IsTrue_Matches(params string[] args)
 		{
 			if (args.Length == 0) throw new InvalidCodeException(currentLine, CodeError.ArgumentsRequired, Usage.MatchesCondition);
 			if (args.Length != 2) throw new InvalidCodeException(currentLine, CodeError.InvalidArguments, Usage.MatchesCondition);
 			return Regex.IsMatch(args[0], args[1]);
 		}
 
-		private bool IsTrue_NotEquals(string[] args)
+		private bool IsTrue_NotEquals(params string[] args)
 		{
 			try
 			{
@@ -386,7 +386,7 @@ internal sealed partial class ScriptEnvironment
 			}
 		}
 
-		private bool IsTrue_NotMatches(string[] args)
+		private bool IsTrue_NotMatches(params string[] args)
 		{
 			try
 			{
@@ -404,7 +404,7 @@ internal sealed partial class ScriptEnvironment
 
 		#region set ...
 
-		private void SetValue(string[] args)
+		private void SetValue(params string[] args)
 		{
 			if (args.Length == 0) throw new InvalidCodeException(currentLine, CodeError.ArgumentsRequired, Usage.SetValueCommand);
 			if (args.Length != 2) throw new InvalidCodeException(currentLine, CodeError.InvalidArguments, Usage.SetValueCommand);
@@ -421,14 +421,14 @@ internal sealed partial class ScriptEnvironment
 
 		#region print ...
 
-		private void Print(string[] args)
+		private void Print(params string[] args)
 		{
 			if (args.Length == 0) throw new InvalidCodeException(currentLine, CodeError.ArgumentsRequired, Usage.PrintCommand);
 			else if (args.Length == 1) Console.Write(args[0]);
 			else throw new InvalidCodeException(currentLine, CodeError.InvalidArguments, Usage.PrintCommand);
 		}
 
-		private void PrintLine(string[] args)
+		private void PrintLine(params string[] args)
 		{
 			if (args.Length == 0) Console.WriteLine();
 			else if (args.Length == 1) Console.WriteLine(args[0]);
@@ -439,13 +439,13 @@ internal sealed partial class ScriptEnvironment
 
 		#region ask ...
 
-		private void AskPause(string[] _)
+		private void AskPause(params string[] args)
 		{
-			if (_.Length != 0) throw new InvalidCodeException(currentLine, CodeError.NoArgumentsRequired, Usage.AskPauseCommand);
+			if (args.Length != 0) throw new InvalidCodeException(currentLine, CodeError.NoArgumentsRequired, Usage.AskPauseCommand);
 			Console.ReadKey(false);
 		}
 
-		private void AskLine(string[] args)
+		private void AskLine(params string[] args)
 		{
 			if (args.Length == 0) throw new InvalidCodeException(currentLine, CodeError.ArgumentsRequired, Usage.AskLineCommand);
 			if (args.Length != 1) throw new InvalidCodeException(currentLine, CodeError.InvalidArguments, Usage.AskLineCommand);
@@ -457,7 +457,7 @@ internal sealed partial class ScriptEnvironment
 			else
 				try
 				{
-					SetValue([valueName, input]);
+					SetValue(valueName, input);
 				}
 				catch
 				{
@@ -469,7 +469,7 @@ internal sealed partial class ScriptEnvironment
 
 		#region execute ...
 
-		private void Execute(string[] args)
+		private void Execute(params string[] args)
 		{
 			if (args.Length == 0) throw new InvalidCodeException(currentLine, CodeError.ArgumentsRequired, Usage.ExecuteCommand);
 			if (args.Length != 1) throw new InvalidCodeException(currentLine, CodeError.InvalidArguments, Usage.ExecuteCommand);
@@ -489,7 +489,7 @@ internal sealed partial class ScriptEnvironment
 			}
 		}
 
-		private void ExecuteWait(string[] args)
+		private void ExecuteWait(params string[] args)
 		{
 			if (args.Length == 0) throw new InvalidCodeException(currentLine, CodeError.ArgumentsRequired, Usage.ExecuteWaitCommand);
 			if (args.Length != 1) throw new InvalidCodeException(currentLine, CodeError.InvalidArguments, Usage.ExecuteWaitCommand);
