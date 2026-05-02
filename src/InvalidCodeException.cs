@@ -34,17 +34,19 @@ internal sealed class InvalidCodeException : Exception
 		[CodeError.LanguageVersionNotSet] = "Only comments can be present before the language version declaration.",
 		[CodeError.LanguageVersionAlreadySet] = "Language version is already set.",
 
-		[CodeError.InvalidArguments] = "Arguments are in the invalid format or do not make sense.",
+		[CodeError.InvalidArguments] = "Arguments for command/condition are in the invalid format or do not make sense.",
 		[CodeError.ArgumentsRequired] = "No arguments were passed but command/condition requires them.",
 		[CodeError.NoArgumentsRequired] = "Arguments were passed but command does not accept any.",
 
 		[CodeError.InvalidCommandName] = "Command name is not valid.",
 		[CodeError.InvalidValueName] = "Value name is not valid.",
 		[CodeError.InvalidLabelName] = "Label name is not valid.",
+		[CodeError.InvalidConditionName] = "Condition name is not valid.",
 
 		[CodeError.CommandNotFound] = "Specified command is not found.",
 		[CodeError.ValueNotFound] = "Specified value is not found.",
 		[CodeError.LabelNotFound] = "Specified label is not found.",
+		[CodeError.ConditionNotFound] = "Specified condition is not found.",
 
 		[CodeError.LabelAlreadyDefined] = "Label with the same name is already defined."
 	}.ToFrozenDictionary();

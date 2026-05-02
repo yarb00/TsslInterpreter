@@ -8,31 +8,51 @@ using System.Text.RegularExpressions;
 
 namespace TsslInterpreter;
 
-file static class CommandUsage
+file static class Usage
 {
 	public const string
 
-		SetValue = "Usage: set value> [value name];[text]",
+		SetValueCommand = "Usage: set value> [value name];[text]",
 
-		Print = "Usage: print> [text]",
-		PrintLine = """
+		PrintCommand = "Usage: print> [text]",
+		PrintLineCommand = """
 			Usage:
 				print line>
 				print line> [text]
 			""",
 
-		AskPause = "Usage: ask pause>",
-		AskLine = "Usage: ask line> [value name]",
+		AskPauseCommand = "Usage: ask pause>",
+		AskLineCommand = "Usage: ask line> [value name]",
 
-		Execute = """
+		ExecuteCommand = """
 			Usage:
 				execute> [path to executable]
 				execute> [path to executable] [arguments]
 			""",
-		ExecuteWait = """
+		ExecuteWaitCommand = """
 			Usage:
 				execute wait> [path to executable]
 				execute wait> [path to executable] [arguments]
+			""";
+
+	public const string
+
+		EqualsCondition = """
+			Usage:
+				?equals: [text 1];[text 2]
+			""",
+		MatchesCondition = """
+			Usage:
+				?matches: [text];[regex]
+			""",
+
+		NotEqualsCondition = """
+			Usage:
+				?not equals: [text 1];[text 2]
+			""",
+		NotMatchesCondition = """
+			Usage:
+				?not matches: [text];[regex]
 			""";
 }
 
@@ -176,7 +196,15 @@ internal sealed partial class ScriptEnvironment
 			if (!commandName.IsAlphanumericWithSpaces)
 				throw new InvalidCodeException(currentLine, CodeError.InvalidCommandName, $"Command \"{commandName}\" violates command naming rules: only numbers (0-9), Latin letters (A-Z) and spaces are permitted.");
 
-			if (instruction.Length > instruction.IndexOf('>') + 1 + 1) commandArguments = ParseArguments(instruction[(instruction.IndexOf('>') + 1 + 1)..] /* After '>' */);
+			if (instruction.Length > instruction.IndexOf('>') + 1 + 1)
+				try
+				{
+					commandArguments = ParseArguments(instruction[(instruction.IndexOf('>') + 1 + 1)..] /* After '>' */);
+				}
+				catch
+				{
+					throw;
+				}
 
 			if (CommandByName.TryGetValue(commandName, out Action<string[]>? action))
 				try
@@ -198,7 +226,7 @@ internal sealed partial class ScriptEnvironment
 
 			try
 			{
-				(label, condition, arguments) = ParseJump(instruction);
+				(label, condition, arguments) = ParseJumpExpression(instruction);
 			}
 			catch
 			{
@@ -223,7 +251,7 @@ internal sealed partial class ScriptEnvironment
 				{
 					throw;
 				}
-			else throw new InvalidCodeException(currentLine, CodeError.ConditionNotFound, $"There is no jump condition named \"{condition}\". Have you made a typo? Are you using the wrong language version (\"{languageVersion}\")?");
+			else throw new InvalidCodeException(currentLine, CodeError.ConditionNotFound, $"There is no condition named \"{condition}\". Have you made a typo? Are you using the wrong language version (\"{languageVersion}\")?");
 		}
 
 		private void Jump(string label)
@@ -233,8 +261,10 @@ internal sealed partial class ScriptEnvironment
 			else currentLine = line;
 		}
 
-		private (string label, string? condition, string[] arguments) ParseJump(string instruction)
+		private (string label, string? condition, string[] arguments) ParseJumpExpression(string instruction)
 		{
+			if (!instruction.StartsWith('<')) throw new InvalidCodeException(currentLine, CodeError.InvalidInstruction);
+
 			instruction = instruction[1..].TrimStart(); // Trim '<'
 
 			if (!instruction.TrimEnd().Contains(' ')) // If jump instruction doesn't contain a condition
@@ -247,6 +277,9 @@ internal sealed partial class ScriptEnvironment
 
 			string condition = instruction[(instruction.IndexOf('?') + 1)..instruction.IndexOf(':')].Trim();
 			instruction = instruction[(instruction.IndexOf(':') + 1 + 1)..]; // Trim condition
+
+			if (!condition.IsAlphanumericWithSpaces)
+				throw new InvalidCodeException(currentLine, CodeError.InvalidConditionName, $"Condition \"{condition}\" violates condition naming rules: only numbers (0-9), Latin letters (A-Z) and spaces are permitted.");
 
 			string[] arguments;
 
@@ -316,7 +349,7 @@ internal sealed partial class ScriptEnvironment
 
 						continue;
 					}
-					else if (insideEscapeSequence) throw new InvalidCodeException(currentLine, CodeError.InvalidInstruction, $"Escape sequence '\\{argument[i]}' does not exist.");
+					else if (insideEscapeSequence) throw new InvalidCodeException(currentLine, CodeError.InvalidInstruction, $"Escape sequence \"\\{argument[i]}\" does not exist. Have you made a typo?");
 					else result += argument[i];
 				}
 				arguments[argumentIndex] = result;
@@ -329,28 +362,40 @@ internal sealed partial class ScriptEnvironment
 
 		private bool IsTrue_Equals(string[] args)
 		{
-			if (args.Length == 0) throw new InvalidCodeException(currentLine, CodeError.ArgumentsRequired);
-			if (args.Length != 2) throw new InvalidCodeException(currentLine, CodeError.InvalidArguments);
+			if (args.Length == 0) throw new InvalidCodeException(currentLine, CodeError.ArgumentsRequired, Usage.EqualsCondition);
+			if (args.Length != 2) throw new InvalidCodeException(currentLine, CodeError.InvalidArguments, Usage.EqualsCondition);
 			return args[0] == args[1];
 		}
 
 		private bool IsTrue_Matches(string[] args)
 		{
-			if (args.Length == 0) throw new InvalidCodeException(currentLine, CodeError.ArgumentsRequired);
-			if (args.Length != 2) throw new InvalidCodeException(currentLine, CodeError.InvalidArguments);
+			if (args.Length == 0) throw new InvalidCodeException(currentLine, CodeError.ArgumentsRequired, Usage.MatchesCondition);
+			if (args.Length != 2) throw new InvalidCodeException(currentLine, CodeError.InvalidArguments, Usage.MatchesCondition);
 			return Regex.IsMatch(args[0], args[1]);
 		}
 
 		private bool IsTrue_NotEquals(string[] args)
 		{
-			try { return !IsTrue_Equals(args); }
-			catch { throw; }
+			try
+			{
+				return !IsTrue_Equals(args);
+			}
+			catch (InvalidCodeException e)
+			{
+				throw new InvalidCodeException(e.Line, e.Reason, Usage.NotEqualsCondition);
+			}
 		}
 
 		private bool IsTrue_NotMatches(string[] args)
 		{
-			try { return !IsTrue_Matches(args); }
-			catch { throw; }
+			try
+			{
+				return !IsTrue_Matches(args);
+			}
+			catch (InvalidCodeException e)
+			{
+				throw new InvalidCodeException(e.Line, e.Reason, Usage.NotMatchesCondition);
+			}
 		}
 
 		#endregion
@@ -361,8 +406,8 @@ internal sealed partial class ScriptEnvironment
 
 		private void SetValue(string[] args)
 		{
-			if (args.Length == 0) throw new InvalidCodeException(currentLine, CodeError.ArgumentsRequired, CommandUsage.SetValue);
-			if (args.Length != 2) throw new InvalidCodeException(currentLine, CodeError.InvalidArguments, CommandUsage.SetValue);
+			if (args.Length == 0) throw new InvalidCodeException(currentLine, CodeError.ArgumentsRequired, Usage.SetValueCommand);
+			if (args.Length != 2) throw new InvalidCodeException(currentLine, CodeError.InvalidArguments, Usage.SetValueCommand);
 
 			(string valueName, string valueContent) = (args[0].Trim(), args[1]);
 
@@ -378,16 +423,16 @@ internal sealed partial class ScriptEnvironment
 
 		private void Print(string[] args)
 		{
-			if (args.Length == 0) throw new InvalidCodeException(currentLine, CodeError.ArgumentsRequired, CommandUsage.Print);
+			if (args.Length == 0) throw new InvalidCodeException(currentLine, CodeError.ArgumentsRequired, Usage.PrintCommand);
 			else if (args.Length == 1) Console.Write(args[0]);
-			else throw new InvalidCodeException(currentLine, CodeError.InvalidArguments, CommandUsage.Print);
+			else throw new InvalidCodeException(currentLine, CodeError.InvalidArguments, Usage.PrintCommand);
 		}
 
 		private void PrintLine(string[] args)
 		{
 			if (args.Length == 0) Console.WriteLine();
 			else if (args.Length == 1) Console.WriteLine(args[0]);
-			else throw new InvalidCodeException(currentLine, CodeError.InvalidArguments, CommandUsage.PrintLine);
+			else throw new InvalidCodeException(currentLine, CodeError.InvalidArguments, Usage.PrintLineCommand);
 		}
 
 		#endregion
@@ -396,14 +441,14 @@ internal sealed partial class ScriptEnvironment
 
 		private void AskPause(string[] _)
 		{
-			if (_.Length != 0) throw new InvalidCodeException(currentLine, CodeError.NoArgumentsRequired, CommandUsage.AskPause);
+			if (_.Length != 0) throw new InvalidCodeException(currentLine, CodeError.NoArgumentsRequired, Usage.AskPauseCommand);
 			Console.ReadKey(false);
 		}
 
 		private void AskLine(string[] args)
 		{
-			if (args.Length == 0) throw new InvalidCodeException(currentLine, CodeError.ArgumentsRequired, CommandUsage.AskLine);
-			if (args.Length != 1) throw new InvalidCodeException(currentLine, CodeError.InvalidArguments, CommandUsage.AskLine);
+			if (args.Length == 0) throw new InvalidCodeException(currentLine, CodeError.ArgumentsRequired, Usage.AskLineCommand);
+			if (args.Length != 1) throw new InvalidCodeException(currentLine, CodeError.InvalidArguments, Usage.AskLineCommand);
 
 			string valueName = args[0];
 
@@ -426,8 +471,8 @@ internal sealed partial class ScriptEnvironment
 
 		private void Execute(string[] args)
 		{
-			if (args.Length == 0) throw new InvalidCodeException(currentLine, CodeError.ArgumentsRequired, CommandUsage.Execute);
-			if (args.Length != 1) throw new InvalidCodeException(currentLine, CodeError.InvalidArguments, CommandUsage.Execute);
+			if (args.Length == 0) throw new InvalidCodeException(currentLine, CodeError.ArgumentsRequired, Usage.ExecuteCommand);
+			if (args.Length != 1) throw new InvalidCodeException(currentLine, CodeError.InvalidArguments, Usage.ExecuteCommand);
 
 			string command = args[0];
 
@@ -446,8 +491,8 @@ internal sealed partial class ScriptEnvironment
 
 		private void ExecuteWait(string[] args)
 		{
-			if (args.Length == 0) throw new InvalidCodeException(currentLine, CodeError.ArgumentsRequired, CommandUsage.ExecuteWait);
-			if (args.Length != 1) throw new InvalidCodeException(currentLine, CodeError.InvalidArguments, CommandUsage.ExecuteWait);
+			if (args.Length == 0) throw new InvalidCodeException(currentLine, CodeError.ArgumentsRequired, Usage.ExecuteWaitCommand);
+			if (args.Length != 1) throw new InvalidCodeException(currentLine, CodeError.InvalidArguments, Usage.ExecuteWaitCommand);
 
 			string command = args[0];
 
