@@ -60,7 +60,7 @@ jobs:
         run: mv ${{ env.OUTPUT_PATH }}/TsslInterpreter ${{ env.OUTPUT_PATH }}/tssl
 
       - name: Upload build artifacts
-        uses: actions/upload-artifact@v6
+        uses: actions/upload-artifact@v7
         with:
           name: TsslInterpreter_${{ matrix.os.dotnet_rid }}
           path: ${{ env.OUTPUT_PATH }}
