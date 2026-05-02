@@ -1,3 +1,5 @@
+#!/usr/bin/env tssl
+
 !TooSimpleScriptingLanguage 0.6
 
 # Print text and a new line character(s), LF or CR+LF.

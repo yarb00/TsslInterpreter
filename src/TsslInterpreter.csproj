@@ -3,11 +3,17 @@
   <PropertyGroup>
     <OutputType>Exe</OutputType>
     <TargetFramework>net10.0</TargetFramework>
-    <Nullable>enable</Nullable>
     <ImplicitUsings>disable</ImplicitUsings>
+    <Nullable>enable</Nullable>
     <PublishAot>true</PublishAot>
+    <InvariantGlobalization>true</InvariantGlobalization>
     <TreatWarningsAsErrors>true</TreatWarningsAsErrors>
-    <VersionPrefix>0.5.0</VersionPrefix>
+    <VersionPrefix>0.6.0</VersionPrefix>
+
+    <!-- File properties -->
+    <AssemblyTitle>TSSL::Interpreter</AssemblyTitle>
+    <Product>TSSL::Interpreter</Product>
+    <Copyright>Copyright (c) yarb00 2025-2026</Copyright>
   </PropertyGroup>
 
 </Project>

@@ -28,7 +28,7 @@ internal sealed partial class ScriptEnvironment(string[] script)
 				}
 				catch (InvalidCodeException e)
 				{
-					Program.Panic(CriticalError.InvalidCode, e.Message);
+					HandleInvalidCode(e);
 				}
 			else
 			{
@@ -37,9 +37,9 @@ internal sealed partial class ScriptEnvironment(string[] script)
 				{
 					ExecuteInstruction(script[currentLine - 1]);
 				}
-				catch
+				catch (InvalidCodeException e)
 				{
-					throw;
+					HandleInvalidCode(e);
 				}
 			}
 		}
@@ -55,14 +55,32 @@ internal sealed partial class ScriptEnvironment(string[] script)
 
 		if (instruction.StartsWith("!TooSimpleScriptingLanguage", StringComparison.OrdinalIgnoreCase))
 		{
-			switch (instruction[("!TooSimpleScriptingLanguage".Length + 1)..].Trim().ToLowerInvariant())
+			switch (instruction[("!TooSimpleScriptingLanguage".Length + 1)..].Trim().ToLower())
 			{
 				case "0.5": executor = new ScriptEnvironmentV0_5(script); break;
+				case "0.6": executor = new ScriptEnvironmentV0_6(script); break;
 
 				default: Program.Panic(CriticalError.NotSupportedLanguageVersion); break;
 			}
 			return;
 		}
-		else throw new InvalidCodeException(currentLine, details: "Only comments can be present before the language version declaration.");
+		else throw new InvalidCodeException(currentLine, CodeError.LanguageVersionNotSet);
+	}
+
+	private static void HandleInvalidCode(InvalidCodeException e)
+	{
+		string message = $"""
+
+			= Error on line {e.Line}: =
+			{e.Message}
+			""";
+
+		if (e.Details is not null) message += $"""
+
+			= Details: =
+			{e.Details}
+			""";
+
+		Program.Panic(CriticalError.InvalidCode, message);
 	}
 }

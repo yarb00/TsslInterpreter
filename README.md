@@ -16,7 +16,7 @@ Documentation will be written later when the language becomes more stable.
 
 For Windows (amd64), Linux (glibc+amd64) and macOS (amd64/arm64), [get the latest version from the Releases section](https://github.com/yarb00/TsslInterpreter/releases/latest).
 
-Also, builds of each new commit are available from GitHub Actions (for the same platforms), until they expire in 400 days.
+Also, builds of each new commit are available from GitHub Actions (for the same platforms), until they expire in 90 days.
 
 If you're using a different platform, you can build TSSL::Interpreter yourself.
 

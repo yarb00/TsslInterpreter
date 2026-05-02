@@ -52,7 +52,8 @@ internal static class Updater
 			case DataLocation.Server:
 				{
 					using HttpClient httpClient = new();
-					httpClient.DefaultRequestHeaders.UserAgent.Add(new(Program.Name, Program.FriendlyVersion));
+					httpClient.DefaultRequestHeaders.Accept.Add(new("application/json"));
+					httpClient.DefaultRequestHeaders.UserAgent.ParseAdd($"{Program.Name}/{Program.FriendlyVersion} (+{Program.Website})");
 					try
 					{
 						rawUpdateData = await httpClient.GetStringAsync(updateDataServerPath);
