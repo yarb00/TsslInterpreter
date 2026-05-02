@@ -474,19 +474,25 @@ internal sealed partial class ScriptEnvironment
 			if (args.Length == 0) throw new InvalidCodeException(currentLine, CodeError.ArgumentsRequired, Usage.ExecuteCommand);
 			if (args.Length != 1) throw new InvalidCodeException(currentLine, CodeError.InvalidArguments, Usage.ExecuteCommand);
 
-			string command = args[0];
+			string fileName, arguments = string.Empty;
 
-			if (!command.Trim().Contains(' ')) Process.Start(command);
-			else
+			if (args[0].Trim().Contains(' '))
 			{
-				int argumentsStartIndex = command.IndexOf(' ') + 1; // Index of the next character after space
-				Process.Start(new ProcessStartInfo
-				{
-					UseShellExecute = true,
-					FileName = command[..(argumentsStartIndex - 1)], // Before space
-					Arguments = command[argumentsStartIndex..] // After space
-				});
+				int argumentsStartIndex = args[0].Trim().IndexOf(' ') + 1; // Index of the next character after space
+				fileName = args[0][..(argumentsStartIndex - 1)]; // Before space
+				arguments = args[0][argumentsStartIndex..]; // After space
 			}
+			else fileName = args[0];
+
+			ProcessStartInfo startInfo = new()
+			{
+				UseShellExecute = true,
+				FileName = fileName,
+				Arguments = arguments
+			};
+
+			Process.Start(startInfo);
+			SetValue("_last_execute_status", string.Empty);
 		}
 
 		private void ExecuteWait(params string[] args)
@@ -494,24 +500,27 @@ internal sealed partial class ScriptEnvironment
 			if (args.Length == 0) throw new InvalidCodeException(currentLine, CodeError.ArgumentsRequired, Usage.ExecuteWaitCommand);
 			if (args.Length != 1) throw new InvalidCodeException(currentLine, CodeError.InvalidArguments, Usage.ExecuteWaitCommand);
 
-			string command = args[0];
+			string fileName, arguments = string.Empty;
 
-			string fileName = command;
-			string? arguments = null;
-
-			if (command.Trim().Contains(' '))
+			if (args[0].Trim().Contains(' '))
 			{
-				int argumentsStartIndex = command.Trim().IndexOf(' ') + 1; // Index of the next character after space
-				fileName = command[..(argumentsStartIndex - 1)]; // Before space
-				arguments = command[argumentsStartIndex..]; // After space
+				int argumentsStartIndex = args[0].Trim().IndexOf(' ') + 1; // Index of the next character after space
+				fileName = args[0][..(argumentsStartIndex - 1)]; // Before space
+				arguments = args[0][argumentsStartIndex..]; // After space
 			}
+			else fileName = args[0];
 
-			ProcessStartInfo startInfo = new() { UseShellExecute = true, FileName = fileName };
-			if (arguments is not null) startInfo.Arguments = arguments;
+			ProcessStartInfo startInfo = new()
+			{
+				UseShellExecute = true,
+				FileName = fileName,
+				Arguments = arguments
+			};
 
 			Process process = new() { StartInfo = startInfo };
 			process.Start();
 			process.WaitForExit();
+			SetValue("_last_execute_status", process.ExitCode.ToString());
 		}
 
 		#endregion
