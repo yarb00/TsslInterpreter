@@ -8,36 +8,45 @@ using System.Text.RegularExpressions;
 
 namespace TsslInterpreter;
 
-file static class CommandUsage
+file static class Usage
 {
 	public const string
-		Jump = "Usage: jump> [label]",
-		JumpIfEqualsExact = "Usage: jump if equals exact> [label];[value name];[text]",
-		JumpIfEqualsExpression = "Usage: jump if equals expression> [label];[value name];[regex]",
 
-		SetValueLine = "Usage: set value line> [value name];[text]",
-		SetValueJoin = "Usage: set value join> [result value name];[value1];[value2];[valueX];...",
+		JumpCommand = "Usage: jump> [label]",
+		JumpIfEqualsExactCommand = "Usage: jump if equals exact> [label];[value name];[text]",
+		JumpIfEqualsExpressionCommand = "Usage: jump if equals expression> [label];[value name];[regex]",
 
-		Print = """
+		SetValueLineCommand = "Usage: set value line> [value name];[text]",
+		SetValueJoinCommand = "Usage: set value join> [result value name];[value 1];[value 2];[value X];...",
+
+		PrintCommand = """
 			Usage:
 				print>
 				print> [text]
 			""",
-		PrintValue = "Usage: print value> [value name]",
-		PrintLine = """
+		PrintValueCommand = "Usage: print value> [value name]",
+		PrintLineCommand = """
 			Usage:
 				print line>
 				print line> [text]
 			""",
-		PrintValueLine = "Usage: print value line> [value name]",
+		PrintValueLineCommand = "Usage: print value line> [value name]",
 
-		AskPause = "Usage: ask pause>",
-		AskValueLine = "Usage: ask value line> [value name]",
+		AskPauseCommand = "Usage: ask pause>",
+		AskValueLineCommand = "Usage: ask value line> [value name]",
 
-		ExecuteProcess = "Usage: execute process> [text]",
-		ExecuteProcessValue = "Usage: execute process value> [value name]",
-		ExecuteProcessWait = "Usage: execute process wait> [text]",
-		ExecuteProcessValueWait = "Usage: execute process value wait> [value name]";
+		ExecuteProcessCommand = """
+			Usage:
+				execute process> [path to executable]
+				execute process> [path to executable] [arguments]
+			""",
+		ExecuteProcessValueCommand = "Usage: execute process value> [value name]",
+		ExecuteProcessWaitCommand = """
+			Usage:
+				execute process wait> [path to executable]
+				execute process wait> [path to executable] [arguments]
+			""",
+		ExecuteProcessValueWaitCommand = "Usage: execute process value wait> [value name]";
 }
 
 internal sealed partial class ScriptEnvironment
@@ -51,12 +60,13 @@ internal sealed partial class ScriptEnvironment
 		private readonly Dictionary<string, string> valueByName = new(StringComparer.OrdinalIgnoreCase)
 		{
 			["_language_version"] = languageVersion,
+
 			["_interpreter_name"] = Program.FriendlyName,
 			["_interpreter_website"] = Program.Website,
 			["_interpreter_version"] = Program.FriendlyVersion
 		};
 
-		private FrozenDictionary<string, Action<string>> ActionByCommandName => new Dictionary<string, Action<string>>() // It's a field because property initializers don't like non-static references
+		private FrozenDictionary<string, Action<string>> CommandByName => new Dictionary<string, Action<string>>()
 		{
 			["jump"] = Jump,
 			["jump if equals exact"] = JumpIfEqualsExact,
@@ -125,16 +135,10 @@ internal sealed partial class ScriptEnvironment
 				string label = instruction[1..].Trim();
 
 				if (!label.IsAlphanumericWithUnderscores)
-				{
-					currentLine = i + 1;
-					throw new InvalidCodeException(currentLine, CodeError.InvalidLabelName, $"Label \"{label}\" violates label naming rules: only numbers (0-9), Latin letters (A-Z) and underscores are permitted.");
-				}
+					throw new InvalidCodeException(i + 1, CodeError.InvalidLabelName, $"Label \"{label}\" violates label naming rules: only numbers (0-9), Latin letters (A-Z) and underscores are permitted.");
 
 				if (lineByLabel.TryGetValue(label, out int line))
-				{
-					currentLine = i + 1;
-					throw new InvalidCodeException(currentLine, CodeError.LabelAlreadyDefined, $"Label \"{label}\" was already defined at the line {line}.");
-				}
+					throw new InvalidCodeException(i + 1, CodeError.LabelAlreadyDefined, $"Label \"{label}\" was already defined at the line {line}.");
 
 				lineByLabel.Add(label, i + 1);
 			}
@@ -151,7 +155,7 @@ internal sealed partial class ScriptEnvironment
 
 			if (!instruction.Contains('>')) throw new InvalidCodeException(currentLine, CodeError.InvalidInstruction);
 
-			if (instruction.Length > instruction.IndexOf('>') + 1 && instruction[instruction.IndexOf('>') + 1] != ' ') // If character after '>' is not space
+			if (instruction.Length > instruction.IndexOf('>') + 1 /* Arguments are passed */ && instruction[instruction.IndexOf('>') + 1] != ' ' /* Arguments are not separated with a space character */)
 				throw new InvalidCodeException(currentLine, CodeError.InvalidInstruction, "Command's arguments must be separated with space.");
 
 			string
@@ -163,7 +167,7 @@ internal sealed partial class ScriptEnvironment
 
 			if (instruction.Length > instruction.IndexOf('>') + 1 + 1) commandArguments = instruction[(instruction.IndexOf('>') + 1 + 1)..]; // After '>'
 
-			if (ActionByCommandName.TryGetValue(commandName, out Action<string>? action))
+			if (CommandByName.TryGetValue(commandName, out Action<string>? action))
 				try
 				{
 					action(commandArguments);
@@ -181,21 +185,21 @@ internal sealed partial class ScriptEnvironment
 
 		private void Jump(string label)
 		{
-			if (label.IsEmpty) throw new InvalidCodeException(currentLine, CodeError.ArgumentsRequired, CommandUsage.Jump);
+			if (label.IsEmpty) throw new InvalidCodeException(currentLine, CodeError.ArgumentsRequired, Usage.JumpCommand);
 			else if (!lineByLabel.TryGetValue(label, out int line)) throw new InvalidCodeException(currentLine, CodeError.LabelNotFound, $"There is no label named \"{label}\". Have you made a typo?");
 			else currentLine = line;
 		}
 
 		private void JumpIfEqualsExact(string args)
 		{
-			if (args.IsEmpty) throw new InvalidCodeException(currentLine, CodeError.ArgumentsRequired, CommandUsage.JumpIfEqualsExact);
+			if (args.IsEmpty) throw new InvalidCodeException(currentLine, CodeError.ArgumentsRequired, Usage.JumpIfEqualsExactCommand);
 
 			string[] @params = args.Split(';');
-			if (@params.Length != 3) throw new InvalidCodeException(currentLine, CodeError.InvalidArguments, CommandUsage.JumpIfEqualsExact);
+			if (@params.Length != 3) throw new InvalidCodeException(currentLine, CodeError.InvalidArguments, Usage.JumpIfEqualsExactCommand);
 			(string label, string valueName, string compareString) = (@params[0].Trim(), @params[1].Trim(), @params[2]);
 
-			if (label.IsEmpty) throw new InvalidCodeException(currentLine, CodeError.InvalidArguments, CommandUsage.JumpIfEqualsExact);
-			if (valueName.IsEmpty) throw new InvalidCodeException(currentLine, CodeError.InvalidArguments, CommandUsage.JumpIfEqualsExact);
+			if (label.IsEmpty) throw new InvalidCodeException(currentLine, CodeError.InvalidArguments, Usage.JumpIfEqualsExactCommand);
+			if (valueName.IsEmpty) throw new InvalidCodeException(currentLine, CodeError.InvalidArguments, Usage.JumpIfEqualsExactCommand);
 
 			if (!valueByName.TryGetValue(valueName, out string? valueContent))
 				throw new InvalidCodeException(currentLine, CodeError.ValueNotFound, $"There is no value named \"{valueName}\". Have you made a typo?");
@@ -213,14 +217,14 @@ internal sealed partial class ScriptEnvironment
 
 		private void JumpIfEqualsExpression(string args)
 		{
-			if (args.IsEmpty) throw new InvalidCodeException(currentLine, CodeError.ArgumentsRequired, CommandUsage.JumpIfEqualsExpression);
+			if (args.IsEmpty) throw new InvalidCodeException(currentLine, CodeError.ArgumentsRequired, Usage.JumpIfEqualsExpressionCommand);
 
 			string[] @params = args.Split(';');
-			if (@params.Length != 3) throw new InvalidCodeException(currentLine, CodeError.InvalidArguments, CommandUsage.JumpIfEqualsExpression);
+			if (@params.Length != 3) throw new InvalidCodeException(currentLine, CodeError.InvalidArguments, Usage.JumpIfEqualsExpressionCommand);
 			(string label, string valueName, string expression) = (@params[0].Trim(), @params[1].Trim(), @params[2]);
 
-			if (label.IsEmpty) throw new InvalidCodeException(currentLine, CodeError.InvalidArguments, CommandUsage.JumpIfEqualsExpression);
-			if (valueName.IsEmpty) throw new InvalidCodeException(currentLine, CodeError.InvalidArguments, CommandUsage.JumpIfEqualsExpression);
+			if (label.IsEmpty) throw new InvalidCodeException(currentLine, CodeError.InvalidArguments, Usage.JumpIfEqualsExpressionCommand);
+			if (valueName.IsEmpty) throw new InvalidCodeException(currentLine, CodeError.InvalidArguments, Usage.JumpIfEqualsExpressionCommand);
 
 			if (!valueByName.TryGetValue(valueName, out string? valueContent))
 				throw new InvalidCodeException(currentLine, CodeError.ValueNotFound, $"There is no value named \"{valueName}\". Have you made a typo?");
@@ -242,10 +246,10 @@ internal sealed partial class ScriptEnvironment
 
 		private void SetValueLine(string args)
 		{
-			if (args.IsEmpty) throw new InvalidCodeException(currentLine, CodeError.ArgumentsRequired, CommandUsage.SetValueLine);
+			if (args.IsEmpty) throw new InvalidCodeException(currentLine, CodeError.ArgumentsRequired, Usage.SetValueLineCommand);
 
 			string[] @params = args.Split(';');
-			if (@params.Length != 2) throw new InvalidCodeException(currentLine, CodeError.InvalidArguments, CommandUsage.SetValueLine);
+			if (@params.Length != 2) throw new InvalidCodeException(currentLine, CodeError.InvalidArguments, Usage.SetValueLineCommand);
 			(string valueName, string valueContent) = (@params[0].Trim(), @params[1]);
 
 			if (!valueName.IsAlphanumericWithUnderscores)
@@ -256,10 +260,10 @@ internal sealed partial class ScriptEnvironment
 
 		private void SetValueJoin(string args)
 		{
-			if (args.IsEmpty) throw new InvalidCodeException(currentLine, CodeError.ArgumentsRequired, CommandUsage.SetValueJoin);
+			if (args.IsEmpty) throw new InvalidCodeException(currentLine, CodeError.ArgumentsRequired, Usage.SetValueJoinCommand);
 
 			string[] @params = args.Split(';', StringSplitOptions.TrimEntries);
-			if (@params.Length < 2) throw new InvalidCodeException(currentLine, CodeError.InvalidArguments, CommandUsage.SetValueJoin);
+			if (@params.Length < 2) throw new InvalidCodeException(currentLine, CodeError.InvalidArguments, Usage.SetValueJoinCommand);
 
 			string receiverValue = @params[0], result = string.Empty;
 
@@ -286,7 +290,7 @@ internal sealed partial class ScriptEnvironment
 
 		private void PrintValue(string valueName)
 		{
-			if (valueName.IsEmpty) throw new InvalidCodeException(currentLine, CodeError.ArgumentsRequired, CommandUsage.PrintValue);
+			if (valueName.IsEmpty) throw new InvalidCodeException(currentLine, CodeError.ArgumentsRequired, Usage.PrintValueCommand);
 			else if (!valueByName.TryGetValue(valueName, out string? valueContent))
 				throw new InvalidCodeException(currentLine, CodeError.ValueNotFound, $"There is no value named \"{valueName}\". Have you made a typo?");
 			else Print(valueContent);
@@ -296,7 +300,7 @@ internal sealed partial class ScriptEnvironment
 
 		private void PrintValueLine(string valueName)
 		{
-			if (valueName.IsEmpty) throw new InvalidCodeException(currentLine, CodeError.ArgumentsRequired, CommandUsage.PrintValueLine);
+			if (valueName.IsEmpty) throw new InvalidCodeException(currentLine, CodeError.ArgumentsRequired, Usage.PrintValueLineCommand);
 			else if (!valueByName.TryGetValue(valueName, out string? valueContent))
 				throw new InvalidCodeException(currentLine, CodeError.ValueNotFound, $"There is no value named \"{valueName}\". Have you made a typo?");
 			else PrintLine(valueContent);
@@ -308,13 +312,13 @@ internal sealed partial class ScriptEnvironment
 
 		private void AskPause(string _)
 		{
-			if (!_.IsEmpty) throw new InvalidCodeException(currentLine, CodeError.NoArgumentsRequired, CommandUsage.AskPause);
+			if (!_.IsEmpty) throw new InvalidCodeException(currentLine, CodeError.NoArgumentsRequired, Usage.AskPauseCommand);
 			Console.ReadKey(false);
 		}
 
 		private void AskValueLine(string valueName)
 		{
-			if (valueName.IsEmpty) throw new InvalidCodeException(currentLine, CodeError.ArgumentsRequired, CommandUsage.AskValueLine);
+			if (valueName.IsEmpty) throw new InvalidCodeException(currentLine, CodeError.ArgumentsRequired, Usage.AskValueLineCommand);
 
 			string? input = Console.ReadLine();
 			if (input is null) Program.Exit();
@@ -335,7 +339,7 @@ internal sealed partial class ScriptEnvironment
 
 		private void ExecuteProcess(string command)
 		{
-			if (command.IsEmpty) throw new InvalidCodeException(currentLine, CodeError.ArgumentsRequired, CommandUsage.ExecuteProcess);
+			if (command.IsEmpty) throw new InvalidCodeException(currentLine, CodeError.ArgumentsRequired, Usage.ExecuteProcessCommand);
 
 			if (!command.Trim().Contains(' ')) Process.Start(command);
 			else
@@ -352,7 +356,7 @@ internal sealed partial class ScriptEnvironment
 
 		private void ExecuteProcessValue(string valueName)
 		{
-			if (valueName.IsEmpty) throw new InvalidCodeException(currentLine, CodeError.ArgumentsRequired, CommandUsage.ExecuteProcessValue);
+			if (valueName.IsEmpty) throw new InvalidCodeException(currentLine, CodeError.ArgumentsRequired, Usage.ExecuteProcessValueCommand);
 			else if (!valueByName.TryGetValue(valueName, out string? valueContent))
 				throw new InvalidCodeException(currentLine, CodeError.ValueNotFound, $"There is no value named \"{valueName}\". Have you made a typo?");
 			else
@@ -368,7 +372,7 @@ internal sealed partial class ScriptEnvironment
 
 		private void ExecuteProcessWait(string command)
 		{
-			if (command.IsEmpty) throw new InvalidCodeException(currentLine, CodeError.ArgumentsRequired, CommandUsage.ExecuteProcessWait);
+			if (command.IsEmpty) throw new InvalidCodeException(currentLine, CodeError.ArgumentsRequired, Usage.ExecuteProcessWaitCommand);
 
 			string fileName = command;
 			string? arguments = null;
@@ -390,7 +394,7 @@ internal sealed partial class ScriptEnvironment
 
 		private void ExecuteProcessValueWait(string valueName)
 		{
-			if (valueName.IsEmpty) throw new InvalidCodeException(currentLine, CodeError.ArgumentsRequired, CommandUsage.ExecuteProcessValueWait);
+			if (valueName.IsEmpty) throw new InvalidCodeException(currentLine, CodeError.ArgumentsRequired, Usage.ExecuteProcessValueWaitCommand);
 			else if (!valueByName.TryGetValue(valueName, out string? valueContent))
 				throw new InvalidCodeException(currentLine, CodeError.ValueNotFound, $"There is no value named \"{valueName}\". Have you made a typo?");
 			else
