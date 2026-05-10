@@ -11,17 +11,21 @@ internal sealed partial class ScriptEnvironment(string[] script)
 		void ExecuteScript(ref int currentLine);
 	}
 
-	private IScriptExecutor? executor = null;
-
 	private readonly string[] script = script;
 
-	private int currentLine = 0;
+	private IScriptExecutor? executor;
+
+	private int currentLine;
 
 	public void ExecuteScript()
 	{
+		executor = null;
+		currentLine = 0;
+
 		while (currentLine < script.Length)
 		{
 			if (executor is not null)
+			{
 				try
 				{
 					executor.ExecuteScript(ref currentLine);
@@ -30,9 +34,11 @@ internal sealed partial class ScriptEnvironment(string[] script)
 				{
 					HandleInvalidCode(e);
 				}
+			}
 			else
 			{
 				currentLine++;
+
 				try
 				{
 					ExecuteInstruction(script[currentLine - 1]);
@@ -40,6 +46,10 @@ internal sealed partial class ScriptEnvironment(string[] script)
 				catch (InvalidCodeException e)
 				{
 					HandleInvalidCode(e);
+				}
+				catch (NotSupportedException)
+				{
+					Program.Panic(CriticalError.NotSupportedLanguageVersion);
 				}
 			}
 		}
@@ -51,20 +61,19 @@ internal sealed partial class ScriptEnvironment(string[] script)
 
 		instruction = instruction.TrimStart();
 
-		if (instruction.IsEmptyOrWhitespace || instruction.StartsWith('#')) return;
+		if (instruction.IsEmpty || instruction.StartsWith('#')) return;
 
-		if (instruction.StartsWith("!TooSimpleScriptingLanguage", StringComparison.OrdinalIgnoreCase))
+		if (!instruction.StartsWith("!TooSimpleScriptingLanguage", StringComparison.OrdinalIgnoreCase))
+			throw new InvalidCodeException(currentLine, CodeError.LanguageVersionNotSet);
+
+		string languageVersion = instruction[("!TooSimpleScriptingLanguage".Length + 1)..].Trim().ToUpperInvariant();
+
+		executor = languageVersion switch
 		{
-			switch (instruction[("!TooSimpleScriptingLanguage".Length + 1)..].Trim().ToLower())
-			{
-				case "0.5": executor = new ScriptEnvironmentV0_5(script); break;
-				case "0.6": executor = new ScriptEnvironmentV0_6(script); break;
-
-				default: Program.Panic(CriticalError.NotSupportedLanguageVersion); break;
-			}
-			return;
-		}
-		else throw new InvalidCodeException(currentLine, CodeError.LanguageVersionNotSet);
+			"0.5" => new ScriptEnvironmentV0_5(script),
+			"0.6" => new ScriptEnvironmentV0_6(script),
+			_ => throw new NotSupportedException()
+		};
 	}
 
 	private static void HandleInvalidCode(InvalidCodeException e)

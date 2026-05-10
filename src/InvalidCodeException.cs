@@ -11,9 +11,9 @@ internal enum CodeError
 	Unknown,
 	InvalidInstruction,
 	LanguageVersionNotSet, LanguageVersionAlreadySet,
-	InvalidArguments, ArgumentsRequired, NoArgumentsRequired,
+	InvalidArguments, ArgumentsRequired, NoArgumentsRequired, InvalidArgumentCount,
 	InvalidCommandName, InvalidValueName, InvalidLabelName, InvalidConditionName,
-	CommandNotFound, ValueNotFound, LabelNotFound, ConditionNotFound,
+	CommandNotFound, ValueNotFound, LabelNotFound, ConditionNotFound, EscapeSequenceNotFound,
 	LabelAlreadyDefined
 }
 
@@ -31,27 +31,29 @@ internal sealed class InvalidCodeException : Exception
 
 		[CodeError.InvalidInstruction] = "Syntax is not valid.",
 
-		[CodeError.LanguageVersionNotSet] = "Only comments can be present before the language version declaration.",
+		[CodeError.LanguageVersionNotSet] = "Only comments (lines starting with \"#\") can be present before the language version declaration.",
 		[CodeError.LanguageVersionAlreadySet] = "Language version is already set.",
 
-		[CodeError.InvalidArguments] = "Arguments for command/condition are in the invalid format or do not make sense.",
-		[CodeError.ArgumentsRequired] = "No arguments were passed but command/condition requires them.",
-		[CodeError.NoArgumentsRequired] = "Arguments were passed but command does not accept any.",
+		[CodeError.InvalidArguments] = "Arguments for the command/condition are in the invalid format or do not make sense.",
+		[CodeError.ArgumentsRequired] = "No arguments were passed but the command/condition requires them.",
+		[CodeError.NoArgumentsRequired] = "Arguments were passed but the command/condition does not accept any.",
+		[CodeError.InvalidArgumentCount] = "Too many or too few arguments were passed to the command/condition.",
 
-		[CodeError.InvalidCommandName] = "Command name is not valid.",
-		[CodeError.InvalidValueName] = "Value name is not valid.",
-		[CodeError.InvalidLabelName] = "Label name is not valid.",
-		[CodeError.InvalidConditionName] = "Condition name is not valid.",
+		[CodeError.InvalidCommandName] = "Specified command name is not valid.",
+		[CodeError.InvalidValueName] = "Specified value name is not valid.",
+		[CodeError.InvalidLabelName] = "Specified label name is not valid.",
+		[CodeError.InvalidConditionName] = "Specified condition name is not valid.",
 
 		[CodeError.CommandNotFound] = "Specified command is not found.",
 		[CodeError.ValueNotFound] = "Specified value is not found.",
 		[CodeError.LabelNotFound] = "Specified label is not found.",
 		[CodeError.ConditionNotFound] = "Specified condition is not found.",
+		[CodeError.EscapeSequenceNotFound] = "Specified escape sequence does not exist.",
 
 		[CodeError.LabelAlreadyDefined] = "Label with the same name is already defined."
 	}.ToFrozenDictionary();
 
-	private InvalidCodeException() : base() { }
+	private InvalidCodeException() { }
 
 	public InvalidCodeException(
 		int line,

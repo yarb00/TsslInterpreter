@@ -12,25 +12,37 @@ file static class Usage
 {
 	public const string
 
-		SetValueCommand = "Usage: set value> [value name];[text]",
+		SetValueCommand = """
+			The "set value" command. Accepts 2 arguments. Usage:
+				set value> [value name];[text]
+			""",
 
-		PrintCommand = "Usage: print> [text]",
+		PrintCommand = """
+			The "print" command. Accepts 1 argument. Usage:
+				print> [text]
+			""",
 		PrintLineCommand = """
-			Usage:
+			The "print line" command. Accepts 1 argument or no arguments. Usage:
 				print line>
 				print line> [text]
 			""",
 
-		AskPauseCommand = "Usage: ask pause>",
-		AskLineCommand = "Usage: ask line> [value name]",
+		AskPauseCommand = """
+			The "ask pause" command. Accepts no arguments. Usage:
+				ask pause>
+			""",
+		AskLineCommand = """
+			The "ask line" command. Accepts 1 argument. Usage:
+				ask line> [value name]
+			""",
 
 		ExecuteCommand = """
-			Usage:
+			The "execute" command. Accepts 1 argument. Usage:
 				execute> [path to executable]
 				execute> [path to executable] [arguments]
 			""",
 		ExecuteWaitCommand = """
-			Usage:
+			The "execute wait" command. Accepts 1 argument. Usage:
 				execute wait> [path to executable]
 				execute wait> [path to executable] [arguments]
 			""";
@@ -38,43 +50,36 @@ file static class Usage
 	public const string
 
 		EqualsCondition = """
-			Usage:
+			The "equals" condition. Accepts 2 arguments. Usage:
 				?equals: [text 1];[text 2]
 			""",
 		MatchesCondition = """
-			Usage:
+			The "matches" condition. Accepts 2 arguments. Usage:
 				?matches: [text];[regex]
 			""",
 
 		NotEqualsCondition = """
-			Usage:
+			The "not equals" condition. Accepts 2 arguments. Usage:
 				?not equals: [text 1];[text 2]
 			""",
 		NotMatchesCondition = """
-			Usage:
+			The "not matches" condition. Accepts 2 arguments. Usage:
 				?not matches: [text];[regex]
 			""";
+
+	public static string WithMessage(string usage, string message) => $"""
+		{message}
+
+		More info about:
+		{usage}
+		""";
 }
 
-internal sealed partial class ScriptEnvironment
+partial class ScriptEnvironment
 {
 	private sealed class ScriptEnvironmentV0_6(string[] script) : IScriptExecutor
 	{
 		private const string languageVersion = "0.6";
-
-		private readonly Dictionary<string, int> lineByLabel = new(StringComparer.OrdinalIgnoreCase);
-
-		private readonly Dictionary<string, string> valueByName = new(StringComparer.OrdinalIgnoreCase)
-		{
-			["_language_version"] = languageVersion,
-
-			["_interpreter_name"] = Program.FriendlyName,
-			["_interpreter_website"] = Program.Website,
-			["_interpreter_license"] = Program.License,
-			["_interpreter_version"] = Program.FriendlyVersion,
-
-			["_last_execute_status"] = string.Empty
-		};
 
 		private FrozenDictionary<string, Action<string[]>> CommandByName => new Dictionary<string, Action<string[]>>()
 		{
@@ -99,21 +104,27 @@ internal sealed partial class ScriptEnvironment
 			["not matches"] = IsTrue_NotMatches
 		}.ToFrozenDictionary(StringComparer.OrdinalIgnoreCase);
 
+		private readonly Dictionary<string, int> lineByLabel = new(StringComparer.OrdinalIgnoreCase);
+
+		private readonly Dictionary<string, string> valueByName = new(StringComparer.OrdinalIgnoreCase)
+		{
+			["_language_version"] = languageVersion,
+
+			["_interpreter_name"] = Program.FriendlyName,
+			["_interpreter_website"] = Program.Website,
+			["_interpreter_license"] = Program.License,
+			["_interpreter_version"] = Program.FriendlyVersion,
+
+			["_last_execute_status"] = string.Empty
+		};
+
 		private readonly string[] script = script;
 
 		private int currentLine;
 
 		public void ExecuteScript(ref int currentLine)
 		{
-			if (lineByLabel.Count == 0)
-				try
-				{
-					ScanLabels();
-				}
-				catch
-				{
-					throw;
-				}
+			if (lineByLabel.Count == 0) ScanLabels();
 
 			this.currentLine = currentLine;
 
@@ -121,14 +132,7 @@ internal sealed partial class ScriptEnvironment
 			{
 				this.currentLine++;
 
-				try
-				{
-					ExecuteInstruction(script[this.currentLine - 1]);
-				}
-				catch
-				{
-					throw;
-				}
+				ExecuteInstruction(script[this.currentLine - 1]);
 			}
 
 			currentLine = this.currentLine;
@@ -163,32 +167,17 @@ internal sealed partial class ScriptEnvironment
 			if (instruction.StartsWith("!TooSimpleScriptingLanguage", StringComparison.OrdinalIgnoreCase))
 				throw new InvalidCodeException(currentLine, CodeError.LanguageVersionAlreadySet, $"Encountered \"{instruction}\", but language version is already set to \"{languageVersion}\".");
 
-			if (instruction.StartsWith('<'))
-				try
-				{
-					HandleJumpExpression(instruction);
-				}
-				catch
-				{
-					throw;
-				}
-			else
-				try
-				{
-					HandleCommandExpression(instruction);
-				}
-				catch
-				{
-					throw;
-				}
+			if (instruction.StartsWith('<')) HandleJumpExpression(instruction);
+			else if (instruction.Contains('>')) HandleCommandExpression(instruction);
+			else throw new InvalidCodeException(currentLine, CodeError.InvalidInstruction);
 		}
 
 		private void HandleCommandExpression(string instruction)
 		{
-			if (!instruction.Contains('>')) throw new InvalidCodeException(currentLine, CodeError.InvalidInstruction);
+			if (!instruction.Contains('>')) Program.Panic();
 
 			if (instruction.Length > instruction.IndexOf('>') + 1 /* Arguments are passed */ && instruction[instruction.IndexOf('>') + 1] != ' ' /* Arguments are not separated with a space character */)
-				throw new InvalidCodeException(currentLine, CodeError.InvalidInstruction, "Command's arguments must be separated with space.");
+				throw new InvalidCodeException(currentLine, CodeError.InvalidInstruction, "Command's arguments must be separated with a space. Insert a space character after '>'.");
 
 			string commandName = instruction[..instruction.IndexOf('>')].Trim(); // Before '>'
 			string[] commandArguments = [];
@@ -196,25 +185,9 @@ internal sealed partial class ScriptEnvironment
 			if (!commandName.IsAlphanumericWithSpaces)
 				throw new InvalidCodeException(currentLine, CodeError.InvalidCommandName, $"Command \"{commandName}\" violates command naming rules: only numbers (0-9), Latin letters (A-Z) and spaces are permitted.");
 
-			if (instruction.Length > instruction.IndexOf('>') + 1 + 1)
-				try
-				{
-					commandArguments = ParseArguments(instruction[(instruction.IndexOf('>') + 1 + 1)..] /* After '>' */);
-				}
-				catch
-				{
-					throw;
-				}
+			if (instruction.Length > instruction.IndexOf('>') + 1 + 1 /* Arguments are passed */) commandArguments = ParseArguments(instruction[(instruction.IndexOf('>') + 1 + 1)..] /* After '>' */);
 
-			if (CommandByName.TryGetValue(commandName, out Action<string[]>? action))
-				try
-				{
-					action(commandArguments);
-				}
-				catch
-				{
-					throw;
-				}
+			if (CommandByName.TryGetValue(commandName, out Action<string[]>? action)) action(commandArguments);
 			else throw new InvalidCodeException(currentLine, CodeError.CommandNotFound, $"There is no command named \"{commandName}\". Have you made a typo? Are you using the wrong language version (\"{languageVersion}\")?");
 		}
 
@@ -224,46 +197,23 @@ internal sealed partial class ScriptEnvironment
 			string? condition;
 			string[] arguments;
 
-			try
-			{
-				(label, condition, arguments) = ParseJumpExpression(instruction);
-			}
-			catch
-			{
-				throw;
-			}
+			(label, condition, arguments) = ParseJumpExpression(instruction);
 
-			if (condition is null)
-				try
-				{
-					Jump(label);
-				}
-				catch
-				{
-					throw;
-				}
-			else if (ConditionByName.TryGetValue(condition, out Func<string[], bool>? conditionAction))
-				try
-				{
-					if (conditionAction(arguments)) Jump(label);
-				}
-				catch
-				{
-					throw;
-				}
-			else throw new InvalidCodeException(currentLine, CodeError.ConditionNotFound, $"There is no condition named \"{condition}\". Have you made a typo? Are you using the wrong language version (\"{languageVersion}\")?");
+			if (condition is null) Jump(label);
+			else if (!ConditionByName.TryGetValue(condition, out Func<string[], bool>? conditionAction))
+				throw new InvalidCodeException(currentLine, CodeError.ConditionNotFound, $"There is no condition named \"{condition}\". Have you made a typo? Are you using the wrong language version (\"{languageVersion}\")?");
+			else if (conditionAction(arguments)) Jump(label);
 		}
 
 		private void Jump(string label)
 		{
-			if (label.IsEmpty) throw new InvalidCodeException(currentLine, CodeError.ArgumentsRequired);
-			else if (!lineByLabel.TryGetValue(label, out int line)) throw new InvalidCodeException(currentLine, CodeError.LabelNotFound, $"There is no label named \"{label}\". Have you made a typo?");
+			if (!lineByLabel.TryGetValue(label, out int line)) throw new InvalidCodeException(currentLine, CodeError.LabelNotFound, $"There is no label named \"{label}\". Have you made a typo?");
 			else currentLine = line;
 		}
 
 		private (string label, string? condition, string[] arguments) ParseJumpExpression(string instruction)
 		{
-			if (!instruction.StartsWith('<')) throw new InvalidCodeException(currentLine, CodeError.InvalidInstruction);
+			if (!instruction.StartsWith('<')) Program.Panic();
 
 			instruction = instruction[1..].TrimStart(); // Trim '<'
 
@@ -276,26 +226,21 @@ internal sealed partial class ScriptEnvironment
 			if (!instruction.Contains('?') || !instruction.Contains(':')) throw new InvalidCodeException(currentLine, CodeError.InvalidInstruction);
 
 			string condition = instruction[(instruction.IndexOf('?') + 1)..instruction.IndexOf(':')].Trim();
+
+			if (instruction.Length > instruction.IndexOf(':') + 1 /* Arguments are passed */ && instruction[instruction.IndexOf(':') + 1] != ' ' /* Arguments are not separated with a space character */)
+				throw new InvalidCodeException(currentLine, CodeError.InvalidInstruction, "Condition's arguments must be separated with a space. Insert a space character after ':'.");
+
 			instruction = instruction[(instruction.IndexOf(':') + 1 + 1)..]; // Trim condition
 
 			if (!condition.IsAlphanumericWithSpaces)
 				throw new InvalidCodeException(currentLine, CodeError.InvalidConditionName, $"Condition \"{condition}\" violates condition naming rules: only numbers (0-9), Latin letters (A-Z) and spaces are permitted.");
 
-			string[] arguments;
-
-			try
-			{
-				arguments = ParseArguments(instruction);
-			}
-			catch
-			{
-				throw;
-			}
+			string[] arguments = ParseArguments(instruction);
 
 			return (label, condition, arguments);
 		}
 
-		private string[] ParseArguments(string rawArguments) // "a;b1\;b2;\(var)\\c" where 'var' equals "test" => ["a", "b1;b2", @"test\c"]
+		private string[] ParseArguments(string rawArguments) // "a;b1\;b2;\(var)\\c" where value 'var' equals "test" => ["a", "b1;b2", @"test\c"]
 		{
 			string[] arguments = rawArguments.Split(';');
 			List<string> temporary = [];
@@ -349,7 +294,7 @@ internal sealed partial class ScriptEnvironment
 
 						continue;
 					}
-					else if (insideEscapeSequence) throw new InvalidCodeException(currentLine, CodeError.InvalidInstruction, $"Escape sequence \"\\{argument[i]}\" does not exist. Have you made a typo?");
+					else if (insideEscapeSequence) throw new InvalidCodeException(currentLine, CodeError.EscapeSequenceNotFound, $"Escape sequence \"\\{argument[i]}\" does not exist. Have you made a typo? Are you using the wrong language version (\"{languageVersion}\")?");
 					else result += argument[i];
 				}
 				arguments[argumentIndex] = result;
@@ -363,15 +308,24 @@ internal sealed partial class ScriptEnvironment
 		private bool IsTrue_Equals(params string[] args)
 		{
 			if (args.Length == 0) throw new InvalidCodeException(currentLine, CodeError.ArgumentsRequired, Usage.EqualsCondition);
-			if (args.Length != 2) throw new InvalidCodeException(currentLine, CodeError.InvalidArguments, Usage.EqualsCondition);
+			if (args.Length != 2) throw new InvalidCodeException(currentLine, CodeError.InvalidArgumentCount, Usage.EqualsCondition);
+
 			return args[0] == args[1];
 		}
 
 		private bool IsTrue_Matches(params string[] args)
 		{
 			if (args.Length == 0) throw new InvalidCodeException(currentLine, CodeError.ArgumentsRequired, Usage.MatchesCondition);
-			if (args.Length != 2) throw new InvalidCodeException(currentLine, CodeError.InvalidArguments, Usage.MatchesCondition);
-			return Regex.IsMatch(args[0], args[1]);
+			if (args.Length != 2) throw new InvalidCodeException(currentLine, CodeError.InvalidArgumentCount, Usage.MatchesCondition);
+
+			try
+			{
+				return Regex.IsMatch(args[0], args[1]);
+			}
+			catch (ArgumentException)
+			{
+				throw new InvalidCodeException(currentLine, CodeError.InvalidArguments, Usage.WithMessage(Usage.MatchesCondition, $"Regular expression (argument 2: \"{args[1]}\") cannot be parsed."));
+			}
 		}
 
 		private bool IsTrue_NotEquals(params string[] args)
@@ -394,7 +348,7 @@ internal sealed partial class ScriptEnvironment
 			}
 			catch (InvalidCodeException e)
 			{
-				throw new InvalidCodeException(e.Line, e.Reason, Usage.NotMatchesCondition);
+				throw new InvalidCodeException(e.Line, e.Reason, e.Details?.Replace(Usage.MatchesCondition, Usage.NotMatchesCondition));
 			}
 		}
 
@@ -407,7 +361,7 @@ internal sealed partial class ScriptEnvironment
 		private void SetValue(params string[] args)
 		{
 			if (args.Length == 0) throw new InvalidCodeException(currentLine, CodeError.ArgumentsRequired, Usage.SetValueCommand);
-			if (args.Length != 2) throw new InvalidCodeException(currentLine, CodeError.InvalidArguments, Usage.SetValueCommand);
+			if (args.Length != 2) throw new InvalidCodeException(currentLine, CodeError.InvalidArgumentCount, Usage.SetValueCommand);
 
 			(string valueName, string valueContent) = (args[0].Trim(), args[1]);
 
@@ -425,14 +379,14 @@ internal sealed partial class ScriptEnvironment
 		{
 			if (args.Length == 0) throw new InvalidCodeException(currentLine, CodeError.ArgumentsRequired, Usage.PrintCommand);
 			else if (args.Length == 1) Console.Write(args[0]);
-			else throw new InvalidCodeException(currentLine, CodeError.InvalidArguments, Usage.PrintCommand);
+			else throw new InvalidCodeException(currentLine, CodeError.InvalidArgumentCount, Usage.PrintCommand);
 		}
 
 		private void PrintLine(params string[] args)
 		{
 			if (args.Length == 0) Console.WriteLine();
 			else if (args.Length == 1) Console.WriteLine(args[0]);
-			else throw new InvalidCodeException(currentLine, CodeError.InvalidArguments, Usage.PrintLineCommand);
+			else throw new InvalidCodeException(currentLine, CodeError.InvalidArgumentCount, Usage.PrintLineCommand);
 		}
 
 		#endregion
@@ -448,21 +402,13 @@ internal sealed partial class ScriptEnvironment
 		private void AskLine(params string[] args)
 		{
 			if (args.Length == 0) throw new InvalidCodeException(currentLine, CodeError.ArgumentsRequired, Usage.AskLineCommand);
-			if (args.Length != 1) throw new InvalidCodeException(currentLine, CodeError.InvalidArguments, Usage.AskLineCommand);
+			if (args.Length != 1) throw new InvalidCodeException(currentLine, CodeError.InvalidArgumentCount, Usage.AskLineCommand);
 
 			string valueName = args[0];
 
 			string? input = Console.ReadLine();
 			if (input is null) Program.Exit();
-			else
-				try
-				{
-					SetValue(valueName, input);
-				}
-				catch
-				{
-					throw;
-				}
+			else SetValue(valueName, input);
 		}
 
 		#endregion
@@ -472,7 +418,7 @@ internal sealed partial class ScriptEnvironment
 		private void Execute(params string[] args)
 		{
 			if (args.Length == 0) throw new InvalidCodeException(currentLine, CodeError.ArgumentsRequired, Usage.ExecuteCommand);
-			if (args.Length != 1) throw new InvalidCodeException(currentLine, CodeError.InvalidArguments, Usage.ExecuteCommand);
+			if (args.Length != 1) throw new InvalidCodeException(currentLine, CodeError.InvalidArgumentCount, Usage.ExecuteCommand);
 
 			string fileName, arguments = string.Empty;
 
@@ -498,7 +444,7 @@ internal sealed partial class ScriptEnvironment
 		private void ExecuteWait(params string[] args)
 		{
 			if (args.Length == 0) throw new InvalidCodeException(currentLine, CodeError.ArgumentsRequired, Usage.ExecuteWaitCommand);
-			if (args.Length != 1) throw new InvalidCodeException(currentLine, CodeError.InvalidArguments, Usage.ExecuteWaitCommand);
+			if (args.Length != 1) throw new InvalidCodeException(currentLine, CodeError.InvalidArgumentCount, Usage.ExecuteWaitCommand);
 
 			string fileName, arguments = string.Empty;
 
