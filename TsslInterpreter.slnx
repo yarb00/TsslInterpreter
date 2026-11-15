@@ -18,17 +18,30 @@
 
   <Folder Name="/Examples/TSSL v0.5/">
     <File Path="examples/v0.5/execute.toosimple" />
-    <File Path="examples/v0.5/hello.toosimple" />
+    <File Path="examples/v0.5/greet.toosimple" />
+    <File Path="examples/v0.5/hello-world.toosimple" />
     <File Path="examples/v0.5/jump.toosimple" />
     <File Path="examples/v0.5/values.toosimple" />
   </Folder>
 
   <Folder Name="/Examples/TSSL v0.6/">
     <File Path="examples/v0.6/execute.toosimple" />
-    <File Path="examples/v0.6/hello.toosimple" />
+    <File Path="examples/v0.6/greet.toosimple" />
+    <File Path="examples/v0.6/hello-world.toosimple" />
     <File Path="examples/v0.6/jump.toosimple" />
-    <File Path="examples/v0.6/test-v0.6.toosimple" />
+    <File Path="examples/v0.6/menu-test.toosimple" />
     <File Path="examples/v0.6/values.toosimple" />
+  </Folder>
+
+  <Folder Name="/Examples/TSSL v0.7/">
+    <File Path="examples/v0.7/arrays.toosimple" />
+    <File Path="examples/v0.7/calculation.toosimple" />
+    <File Path="examples/v0.7/execute.toosimple" />
+    <File Path="examples/v0.7/greet.toosimple" />
+    <File Path="examples/v0.7/hello-world.toosimple" />
+    <File Path="examples/v0.7/jump.toosimple" />
+    <File Path="examples/v0.7/menu-test.toosimple" />
+    <File Path="examples/v0.7/values.toosimple" />
   </Folder>
 
   <Project Path="src/TsslInterpreter.csproj" />
