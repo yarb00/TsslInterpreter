@@ -38,7 +38,7 @@ If you're using a different platform, you can build TSSL::Interpreter yourself.
 
 #### 3. If .NET SDK (v11) is not installed
 
-##### Install via `dotnetup`
+##### Install via `dotnetup` (recommended)
 
 ###### If `dotnetup` is not installed
 
@@ -52,7 +52,7 @@ If you're using a different platform, you can build TSSL::Interpreter yourself.
 - After changing your working directory with `cd TsslInterpreter`, run `dotnetup install`.
 - Verify that `dotnetup dotnet --version` prints `11.0.XYZ` (for example, `11.0.100`).
 
-##### Install manually
+##### Install manually (without `dotnetup`)
 
 - Install the latest version of [.NET 11 SDK](https://dotnet.microsoft.com/en-us/download/dotnet/11.0).
 - After installation, run `dotnet --list-sdks` and verify that version `11.0.XYZ` (for example, `11.0.100`) is present.
@@ -61,7 +61,7 @@ If you're using a different platform, you can build TSSL::Interpreter yourself.
 #### 4. Build TSSL::Interpreter
 
 - Verify that your current working directory is the TSSL::Interpreter repository (`cd TsslInterpreter`).
-- **Recommended**: Run `git switch v<A>.<B>.<C> --detach` to build a specific release (replace `v<A>.<B>.<C>` with the version of TSSL::Interpreter you want to build, for example, `v0.6.1`); otherwise, the latest commit will be used (which can be ahead of the latest version).
-- Build the project with `dotnet publish -r <RID>`. See [the list of Runtime Identifiers](https://learn.microsoft.com/en-us/dotnet/core/rid-catalog#known-rids) and replace `<RID>` with the one matching your system.
-- The executable will be placed in `artifacts/publish/TsslInterpreter/release_<RID>`.
+- **Recommended**: Run `git switch v<A>.<B>.<C> --detach` to build a specific release (replace `v<A>.<B>.<C>` with the version of TSSL::Interpreter you want to build, for example, `v0.7.0`); otherwise, the latest commit will be used (which can be ahead of the latest version).
+- Build the project with `dotnetup dotnet publish -r <RID>` (or just `dotnet publish -r <RID>` if you're not using `dotnetup`). See [the list of Runtime Identifiers](https://learn.microsoft.com/en-us/dotnet/core/rid-catalog#known-rids) and replace `<RID>` with the one matching your system.
+- The `TsslInterpreter` (`TsslInterpreter.exe` on Windows) executable will be placed in `artifacts/publish/TsslInterpreter/release_<RID>`.
 - **Recommended**: rename `TsslInterpreter`/`TsslInterpreter.exe` to `tssl`/`tssl.exe` and copy it somewhere, then add it to your PATH.
