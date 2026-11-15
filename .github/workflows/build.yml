@@ -68,6 +68,10 @@ jobs:
         if: runner.os == 'Linux'
         run: mv ${{ env.OUTPUT_PATH }}/TsslInterpreter ${{ env.OUTPUT_PATH }}/tssl
 
+      - name: Create an intermediate directory (macOS)
+        if: runner.os == 'macOS'
+        run: mkdir artifacts/macos-universal
+
       - name: Build a universal binary (macOS)
         if: runner.os == 'macOS'
         run: lipo -create -output artifacts/macos-universal/tssl ${{ env.OUTPUT_PATH_BASE }}_osx-arm64/TsslInterpreter ${{ env.OUTPUT_PATH_BASE }}_osx-x64/TsslInterpreter
