@@ -33,7 +33,7 @@ unset> i;
 # Let's find the length of the array.
 set> length; 0;
 while exists> name \(length);
-	add> \(length); 1; i;
+	add> \(length); 1; length;
 end while>
 
 # And add a new element.
