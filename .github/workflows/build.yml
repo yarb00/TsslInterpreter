@@ -22,42 +22,63 @@ jobs:
         os:
           - runner_name: ubuntu-22.04
             dotnet_rid: linux-x64
+          - runner_name: ubuntu-22.04-arm
+            dotnet_rid: linux-arm64
+          - runner_name: macos-15
+            # macOS 15 ARM64 is used to build both osx-arm64 and osx-x64 (universal)
           - runner_name: windows-2022
             dotnet_rid: win-x64
-          - runner_name: macos-15-intel
-            dotnet_rid: osx-x64
-          - runner_name: macos-15
-            dotnet_rid: osx-arm64
 
     runs-on: ${{ matrix.os.runner_name }}
 
     env:
-      OUTPUT_PATH: src/bin/Release/net10.0/${{ matrix.os.dotnet_rid }}/publish
+      OUTPUT_PATH_BASE: artifacts/publish/TsslInterpreter/release
+      OUTPUT_PATH: artifacts/publish/TsslInterpreter/release_${{ matrix.os.dotnet_rid }}
 
     steps:
 
       - name: Checkout
-        uses: actions/checkout@v6
+        uses: actions/checkout@v7
         with:
           fetch-depth: 1
 
       - name: Setup .NET
-        uses: actions/setup-dotnet@v5
+        uses: actions/setup-dotnet@v6
         with:
-          dotnet-version: 10.0.1xx
-          dotnet-quality: ga
+          global-json-file: global.json
 
-      - name: Build
+      - name: Build (Windows/Linux)
+        if: runner.os != 'macOS'
         run: dotnet publish -r ${{ matrix.os.dotnet_rid }}
 
-      - name: Rename executable file (Windows)
+      - name: Build (macOS ARM64)
+        if: runner.os == 'macOS'
+        run: dotnet publish -r osx-arm64
+
+      - name: Build (macOS x64)
+        if: runner.os == 'macOS'
+        run: dotnet publish -r osx-x64
+
+      - name: Rename the executable file (Windows)
         if: runner.os == 'Windows'
-        run: Move-Item ${{ env.OUTPUT_PATH }}/TsslInterpreter.exe ${{ env.OUTPUT_PATH }}/tssl.exe
+        run: Rename-Item -Path ${{ env.OUTPUT_PATH }}/TsslInterpreter.exe -NewName tssl.exe
         shell: pwsh
 
-      - name: Rename executable file (Linux/macOS)
-        if: runner.os != 'Windows'
+      - name: Rename the executable file (Linux)
+        if: runner.os == 'Linux'
         run: mv ${{ env.OUTPUT_PATH }}/TsslInterpreter ${{ env.OUTPUT_PATH }}/tssl
+
+      - name: Build a universal binary (macOS)
+        if: runner.os == 'macOS'
+        run: lipo -create -output artifacts/macos-universal/tssl ${{ env.OUTPUT_PATH_BASE }}_osx-arm64/TsslInterpreter ${{ env.OUTPUT_PATH_BASE }}_osx-x64/TsslInterpreter
+
+      - name: Sign the executable file (macOS)
+        if: runner.os == 'macOS'
+        run: codesign --force --sign - artifacts/macos-universal/tssl
+
+      - name: Set the output path (macOS)
+        if: runner.os == 'macOS'
+        run: echo "OUTPUT_PATH=artifacts/macos-universal" >> $GITHUB_ENV
 
       - name: Upload build artifacts
         uses: actions/upload-artifact@v7

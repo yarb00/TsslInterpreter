@@ -1,12 +1,35 @@
 <Solution>
+  <Folder Name="/Solution Items/">
+    <File Path=".editorconfig" />
+    <File Path=".gitignore" />
+    <File Path="Directory.Build.props" />
+    <File Path="global.json" />
+    <File Path="LICENSE.txt" />
+    <File Path="README.md" />
+  </Folder>
 
-  <Configurations>
-    <Platform Name="Any CPU" />
-    <Platform Name="arm64" />
-    <Platform Name="x64" />
-    <Platform Name="x86" />
-  </Configurations>
+  <Folder Name="/GitHub Actions/">
+    <File Path=".github/workflows/build.yml" />
+  </Folder>
+
+  <Folder Name="/Editor Support/Notepad++/">
+    <File Path="editors/npp/TSSL.xml" />
+  </Folder>
+
+  <Folder Name="/Examples/TSSL v0.5/">
+    <File Path="examples/v0.5/execute.toosimple" />
+    <File Path="examples/v0.5/hello.toosimple" />
+    <File Path="examples/v0.5/jump.toosimple" />
+    <File Path="examples/v0.5/values.toosimple" />
+  </Folder>
+
+  <Folder Name="/Examples/TSSL v0.6/">
+    <File Path="examples/v0.6/execute.toosimple" />
+    <File Path="examples/v0.6/hello.toosimple" />
+    <File Path="examples/v0.6/jump.toosimple" />
+    <File Path="examples/v0.6/test-v0.6.toosimple" />
+    <File Path="examples/v0.6/values.toosimple" />
+  </Folder>
 
   <Project Path="src/TsslInterpreter.csproj" />
-
 </Solution>
