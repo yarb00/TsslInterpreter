@@ -4,6 +4,11 @@ name: Build
 
 on:
   workflow_dispatch:
+    inputs:
+      version:
+        description: The version to inject into the upload name (if any)
+        required: false
+        type: string
   push:
     branches:
       - master
@@ -34,6 +39,8 @@ jobs:
     env:
       OUTPUT_PATH_BASE: artifacts/publish/TsslInterpreter/release
       OUTPUT_PATH: artifacts/publish/TsslInterpreter/release_${{ matrix.os.dotnet_rid }}
+      UPLOAD_NAME_BASE: TsslInterpreter${{ case(inputs.version != '', '_v', '') }}${{ inputs.version }}
+      UPLOAD_NAME: TsslInterpreter${{ case(inputs.version != '', '_v', '') }}${{ inputs.version }}_${{ matrix.os.dotnet_rid }}
 
     steps:
 
@@ -84,9 +91,13 @@ jobs:
         if: runner.os == 'macOS'
         run: echo "OUTPUT_PATH=artifacts/macos-universal" >> $GITHUB_ENV
 
+      - name: Set the upload name (macOS)
+        if: runner.os == 'macOS'
+        run: echo "UPLOAD_NAME=${{ env.UPLOAD_NAME_BASE }}_macos-universal" >> $GITHUB_ENV
+
       - name: Upload build artifacts
         uses: actions/upload-artifact@v7
         with:
-          name: TsslInterpreter_${{ matrix.os.dotnet_rid }}
+          name: ${{ env.UPLOAD_NAME }}
           path: ${{ env.OUTPUT_PATH }}
           if-no-files-found: error
