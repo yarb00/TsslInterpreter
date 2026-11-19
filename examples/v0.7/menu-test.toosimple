@@ -4,34 +4,37 @@
 
 !TooSimpleScriptingLanguage 0.7
 
-# Lines starting with "#" are comments. They are ignored by the interpreter.
-# "!TooSimpleScriptingLanguage VERSION" is a language version declaration. It must be present once, and only once, before any non-comment instruction.
-# "COMMAND NAME>" or "my COMMAND NAME>" is a command call without arguments.
-# "COMMAND NAME> arg1; arg2; ...; argN;" or "my COMMAND NAME> arg1; arg2; ...; argN;" is a command call with arguments.
+# Lines starting with `#` are comments. They are ignored by the interpreter.
+# `!TooSimpleScriptingLanguage VERSION` is a language version declaration. It must be present once, and only once, before any non-comment statements (comments are allowed before it).
+# `COMMAND NAME>` or `my COMMAND NAME>` is a command call (instruction) without arguments.
+# `COMMAND NAME> arg1; arg2; ...; argN;` or `my COMMAND NAME> arg1; arg2; ...; argN;` is a command call (instruction) with arguments.
 
-# Too Simple Scripting Language is indentation insensetive. All lines are trimmed before parsing.
+# Too Simple Scripting Language is indentation insensetive. All lines are trimmed (of leading and trailing whitespace) before parsing the file.
 # Instructions are separated by line breaks. Line breaks DO matter.
 
 # Valid characters for identifiers (variables, commands, labels): [A-Za-z0-9_ ] (latin letters, numbers, underscores and spaces).
-# Identifiers are case insensetive. They are also trimmed before processing.
+# Identifiers are case insensetive. They are also trimmed before processing (`   print line  ` is the same identifier as `print line`, but `print   line` is different).
 
-# Built-in commands are called directly by their name, while user-defined commands must be prefixed with "my".
+# Built-in commands are called directly by their name, while user-defined commands must be prefixed with `my`.
 # Variables starting with an underscore are built-in. User-defined variables cannot start with an underscore.
+# Since variable creation and variable assignment are the same thing in TSSL, you also cannot mutate the built-in variables, only read them or unset (delete) them.
 
-# Backslashes are escaped as "\\". Semicolons are escaped as "\;". String interpolation syntax is "\(VARIABLE NAME)".
-# String interpolation can be nested.
-# If variable "arr 2" is set to "hi", and variable "i" is set to "2", then "\(arr \(i))" is unwrapped as: "\(arr \(i))" => "\(arr 2)" => "hi".
+# Backslashes are escaped as `\\`. Semicolons are escaped as `\;`. String interpolation syntax is `\(VARIABLE NAME)`. Other sequences starting with a backslash are invalid.
+# String interpolation can be nested. If variable `arr 2` is set to "hi", and variable `i` is set to "2", then `\(arr \(i))` is expanded as: `\(arr \(i))` => `\(arr 2)` => `hi`.
+# String interpolation syntax, and other escape sequences can only be used inside arguments. In other places they are treated as raw text with no special meaning.
+# When expanding string interpolation, the interpreter works with arguments as separate isolated string objects.
+# String interpolation cannot change the program structure: script's source code is already parsed by that point. String interpolation only works within the string.
 
-# Traditional GOTO exists in a form of labels, which are defined on their own line as "@LABEL NAME", and the "jump> LABEL NAME;" command.
-# Before script is executed, it's prescanned for labels, so you can safely jump to a label that is defined below the current line.
+# Traditional GOTO exists in a form of labels, which are defined on their own line as `@LABEL NAME`, and the `jump> LABEL NAME;` command.
+# You can safely jump to any existing label in the script from any line, above or below.
 
-# User-defined commands, unlike built-in commands, are just glorified GOTOs, and passed arguments (if any) are written to variables "_1", "_2", "_3", etc.
-# The total argument count is written to "_argument_count" (equals "0" if no arguments are passed).
-# Fallthrough is not allowed: user-defined commands must call "stop>", "stop> MESSAGE;", "jump> LABEL NAME;" or another user-defined command before they end ("end command>").
+# User-defined commands, unlike built-in commands, are just glorified GOTOs, and passed arguments (if any) are written to variables `_0`, `_1`, `_2`, etc.
+# The total argument count is written to `_argument_count` (equals "0" if no arguments are passed).
+# Fallthrough is not allowed: user-defined commands must call `stop>`, `stop> MESSAGE;`, `jump> LABEL NAME;` or another user-defined command before they end (`end command>`).
 
 # Define a command named "main menu".
 command> main menu;
-	# Print the passed string to STDOUT as it is (without a line break). "[whoami/greet/exit]: ".
+	# Print the passed string to STDOUT as it is (without a line break): "[whoami/greet/exit]: ".
 	print> [whoami/greet/exit]: ;
 	# Read a line from STDIN and save it to the variable named "option".
 	ask line> option;

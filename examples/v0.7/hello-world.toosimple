@@ -6,4 +6,4 @@
 
 print line> Hello, world!;
 
-# Lines starting with "#" are comments. They are ignored by the interpreter.
+# Lines starting with `#` are comments. They are ignored by the interpreter.

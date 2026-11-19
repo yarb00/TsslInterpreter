@@ -26,7 +26,7 @@
             <Keywords name="Folders in comment, middle"></Keywords>
             <Keywords name="Folders in comment, close"></Keywords>
             <Keywords name="Keywords1">"add" "ask line" "ask pause" "count length" "execute" "execute wait" "jump" "print" "print line" "set" "stop" "substring" "trim whitespace" "unset"</Keywords>
-            <Keywords name="Keywords2">command end equals exists if less matches more my not number while</Keywords>
+            <Keywords name="Keywords2">command end equals exists greater if integer less matches my not number while</Keywords>
             <Keywords name="Keywords3">_argument_count _interpreter_name _interpreter_version _interpreter_website _language_version _last_execute_status</Keywords>
             <Keywords name="Keywords4"></Keywords>
             <Keywords name="Keywords5"></Keywords>

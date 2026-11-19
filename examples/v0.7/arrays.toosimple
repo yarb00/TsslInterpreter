@@ -9,7 +9,7 @@
 
 # Create the "array".
 # Since arrays are not built-in, you can implement them in any way you want, starting with 0, 1, or any other number, or even a string (for dictionaries).
-# In this example, we'll make an array that starts with index 0.
+# In this example, we'll make an array that starts with index 0, since other language areas are also zero-based (arguments, and substring command).
 set> name 0; Alice;
 set> name 1; John Doe;
 set> name 2; Jane Doe;

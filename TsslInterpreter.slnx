@@ -36,6 +36,8 @@
   <Folder Name="/Examples/TSSL v0.7/">
     <File Path="examples/v0.7/arrays.toosimple" />
     <File Path="examples/v0.7/calculation.toosimple" />
+    <File Path="examples/v0.7/commands.toosimple" />
+    <File Path="examples/v0.7/conditions.toosimple" />
     <File Path="examples/v0.7/execute.toosimple" />
     <File Path="examples/v0.7/greet.toosimple" />
     <File Path="examples/v0.7/hello-world.toosimple" />

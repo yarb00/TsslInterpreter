@@ -4,34 +4,34 @@
 
 # https://tssl.yarb00.dev
 
-# jump> [label name]
-# Continue code execution from a line with the specified label. Panic if label is not defined.
+# jump> LABEL NAME;
+# Continue code execution from a line with the specified label. Panic if the specified label is not defined.
 
-# When defined, label is attached to the first command after it.
-# If no commands are present after the label definition, it acts like a "stop>" call.
+# When defined, label is attached to the first instruction (command call) after it.
+# If no instructions are present after the label definition, it acts like a `stop>` call.
 
-@ask
-print> Greet (y/N)?: ;
-ask line> answer;
-trim whitespace> \(answer); answer;
+@ask for input
+	print> Greet (y/N)?: ;
+	ask line> answer;
+	trim whitespace> \(answer); answer;
 
-if matches> \(answer); ^[yY]$;
-	jump> continue execution;
-end if>
+	if matches> \(answer); ^[yY]$;
+		jump> continue;
+	end if>
 
-if matches> \(answer); ^[nN]$;
-	jump> halt execution;
-end if>
+	if matches> \(answer); ^[nN]$;
+		jump> halt;
+	end if>
 
-# If user pressed Enter without any input, treat it as no.
-if equals> \(answer); ;
-	jump> halt execution;
-end if>
+	# If user pressed Enter without any input, treat it as no.
+	if equals> \(answer); ;
+		jump> halt;
+	end if>
 
-# If answer is not 'y', 'Y', 'n', 'N' or nothing, ask again.
-jump> ask;
+	# If answer is not 'y', 'Y', 'n', 'N' or nothing, ask again.
+	jump> ask for input;
 
-@continue execution
-print line> Hi!;
+@continue
+	print line> Hi!;
 
-@halt execution
+@halt
