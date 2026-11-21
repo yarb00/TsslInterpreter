@@ -1,8 +1,9 @@
 #!/usr/bin/env tssl
+# https://tssl.yarb00.dev
+# SPDX-FileCopyrightText: yarb00 <https://www.yarb00.dev>
+# SPDX-License-Identifier: CC0-1.0
 
 !TooSimpleScriptingLanguage 0.6
-
-# https://tssl.yarb00.dev
 
 # <[label name]
 # Continue code execution from a line with the specified label.

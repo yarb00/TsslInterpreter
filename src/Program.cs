@@ -1,9 +1,15 @@
-// https://tssl.yarb00.dev
+// SPDX-FileCopyrightText: yarb00 <https://www.yarb00.dev>
+// SPDX-License-Identifier: MPL-2.0
+
+// This Source Code Form is subject to the terms of the Mozilla Public
+// License, v. 2.0. If a copy of the MPL was not distributed with this
+// file, You can obtain one at https://mozilla.org/MPL/2.0/.
 
 using System;
 using System.Collections.Frozen;
 using System.Collections.Generic;
 using System.Diagnostics;
+using System.Diagnostics.CodeAnalysis;
 using System.IO;
 using System.Reflection;
 using System.Runtime.InteropServices;
@@ -31,7 +37,11 @@ internal static class Program
 
 	public const string Website = "https://tssl.yarb00.dev";
 
-	public const string LicenseName = "MIT (Expat)";
+	// The full name of the license, including its version (if applicable) and the word "License".
+	public const string LicenseName = "Mozilla Public License 2.0";
+
+	// The webpage that serves the full text of the license and will continue serving it in the future.
+	public const string LicenseUrl = $"{Website}/license/interpreter/v0.7.0+";
 
 	public static readonly Version Version = Assembly.GetExecutingAssembly().GetName().Version
 		?? throw new UnreachableException("Assembly version cannot be null.");
@@ -89,11 +99,14 @@ internal static class Program
 		}
 	}
 
+	[DoesNotReturn]
 	public static void Panic(ProgramError error = ProgramError.Unknown, string? message = null)
 	{
 		if (message is null && !messageByError.TryGetValue(error, out message)) message = messageByError[ProgramError.Unknown];
 
 		Exit(message, exitCode: (int)error);
+
+		throw new UnreachableException("Program.Exit will always kill the process if argument exitCode is not null.");
 	}
 
 	public static void Exit(string? message = null, int? exitCode = 0)
@@ -119,7 +132,7 @@ internal static class Program
 
 	private static void PrintUsage()
 	{
-		string prefix = Environment.GetCommandLineArgs()[0];
+		string prefix = Path.GetFileName(Environment.GetCommandLineArgs()[0]);
 
 		if (!prefix.IsEmpty) prefix += " ";
 
@@ -144,6 +157,11 @@ internal static class Program
 					{prefix}-v
 
 			Visit {Website} for more information.
+
+			The source code of {FriendlyName} is licensed under the {LicenseName}.
+			You should have received a file named "LICENSE.txt" with this executable. It contains the full text of the {LicenseName}.
+			If you do not have this file, you can get the full text of the {LicenseName} online at:
+			{LicenseUrl}
 			""");
 	}
 

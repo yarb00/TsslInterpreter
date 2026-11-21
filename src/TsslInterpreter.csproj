@@ -1,7 +1,7 @@
 <Project Sdk="Microsoft.NET.Sdk">
   <PropertyGroup>
     <AssemblyTitle>TSSL::Interpreter</AssemblyTitle>
-    <Copyright>Copyright (c) 2025-2026 yarb00</Copyright>
+    <Copyright>yarb00 (https://www.yarb00.dev)</Copyright>
     <ImplicitUsings>disable</ImplicitUsings>
     <InvariantGlobalization>true</InvariantGlobalization>
     <Nullable>enable</Nullable>
@@ -14,4 +14,7 @@
     <VersionPrefix>0.7.0</VersionPrefix>
     <VersionSuffix>dev</VersionSuffix>
   </PropertyGroup>
+  <ItemGroup>
+    <Content CopyToOutputDirectory="PreserveNewest" Include="$(RepositoryRoot)LICENSE.txt" />
+  </ItemGroup>
 </Project>

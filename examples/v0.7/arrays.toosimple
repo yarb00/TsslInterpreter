@@ -1,8 +1,9 @@
 #!/usr/bin/env tssl
+# https://tssl.yarb00.dev
+# SPDX-FileCopyrightText: yarb00 <https://www.yarb00.dev>
+# SPDX-License-Identifier: CC0-1.0
 
 !TooSimpleScriptingLanguage 0.7
-
-# https://tssl.yarb00.dev
 
 # There are no native arrays in TSSL, only flat variables.
 # But we can use nested string interpolation to emulate arrays.

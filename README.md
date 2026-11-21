@@ -1,5 +1,11 @@
 # [TSSL::Interpreter](https://tssl.yarb00.dev)
 
+## License
+
+The contents of the `examples/` directory are licensed under the `CC0-1.0` license. Its full text can be found at `examples/LICENSE.txt`.
+
+Unless stated otherwise, all other files in this repository, including this `README.md`, are licensed under the `MPL-2.0` license. Its full text can be found at `LICENSE.txt` (in the repository root).
+
 ## About Too Simple Scripting Language
 
 ### Documentation
@@ -65,3 +71,4 @@ If you're using a different platform, you can build TSSL::Interpreter yourself.
 - Build the project with `dotnetup dotnet publish -r <RID>` (or just `dotnet publish -r <RID>` if you're not using `dotnetup`). See [the list of Runtime Identifiers](https://learn.microsoft.com/en-us/dotnet/core/rid-catalog#known-rids) and replace `<RID>` with the one matching your system.
 - The `TsslInterpreter` (`TsslInterpreter.exe` on Windows) executable will be placed in `artifacts/publish/TsslInterpreter/release_<RID>`.
 - **Recommended**: rename `TsslInterpreter`/`TsslInterpreter.exe` to `tssl`/`tssl.exe` and copy it somewhere, then add it to your PATH.
+- If you plan to distribute your build of TSSL::Interpreter to other people, include the `LICENSE.txt` file from the repository root.

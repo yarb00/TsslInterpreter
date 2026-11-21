@@ -16,6 +16,10 @@
     <File Path="editors/npp/TSSL.xml" />
   </Folder>
 
+  <Folder Name="/Examples/">
+    <File Path="examples/LICENSE.txt" />
+  </Folder>
+
   <Folder Name="/Examples/TSSL v0.5/">
     <File Path="examples/v0.5/execute.toosimple" />
     <File Path="examples/v0.5/greet.toosimple" />
