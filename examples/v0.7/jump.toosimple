@@ -1,0 +1,37 @@
+#!/usr/bin/env tssl
+
+!TooSimpleScriptingLanguage 0.7
+
+# https://tssl.yarb00.dev
+
+# jump> LABEL NAME;
+# Continue code execution from a line with the specified label. Panic if the specified label is not defined.
+
+# When defined, label is attached to the first instruction (command call) after it.
+# If no instructions are present after the label definition, it acts like a `stop>` call.
+
+@ask for input
+	print> Greet (y/N)?: ;
+	ask line> answer;
+	trim whitespace> \(answer); answer;
+
+	if matches> \(answer); ^[yY]$;
+		jump> continue;
+	end if>
+
+	if matches> \(answer); ^[nN]$;
+		jump> halt;
+	end if>
+
+	# If user pressed Enter without any input, treat it as no.
+	if equals> \(answer); ;
+		jump> halt;
+	end if>
+
+	# If answer is not 'y', 'Y', 'n', 'N' or nothing, ask again.
+	jump> ask for input;
+
+@continue
+	print line> Hi!;
+
+@halt

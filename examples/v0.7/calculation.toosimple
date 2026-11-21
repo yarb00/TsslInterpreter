@@ -1,0 +1,33 @@
+#!/usr/bin/env tssl
+
+!TooSimpleScriptingLanguage 0.7
+
+# https://tssl.yarb00.dev
+
+command> ask user;
+	print> Enter a number: ;
+	ask line> input;
+	trim whitespace> \(input); input;
+	my do calculation> \(input);
+end command>
+
+command> do calculation;
+	if not equals> \(_argument_count); 1;
+		stop> "do calculation" expected 1 argument, but got \(_argument_count)!;
+	end if>
+
+	# result = {first argument of `do calculation`} - {5.55}
+	# If first or second argument of `add` is not a valid number, `add` will UNSET the variable specified in the third argument.
+	add> \(_0); -5.55; result;
+
+	if not exists> result;
+		print line> INVALID NUMBER!!! Enter again!;
+		my ask user>
+	end if>
+
+	print line> \(_0) - 5.55 = \(result);
+	stop>
+end command>
+
+print line> Welcome!;
+my ask user>

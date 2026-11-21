@@ -1,0 +1,16 @@
+#!/usr/bin/env tssl
+
+!TooSimpleScriptingLanguage 0.7
+
+# https://tssl.yarb00.dev
+
+# who = "world"
+set> who; world;
+print line> Hello, \(who)!;
+
+print line> TSSL version: \(_language_version);
+print line> Your interpreter: \(_interpreter_name) v\(_interpreter_version)\; info at \(_interpreter_website);
+
+print line> Bye, \(who)!;
+
+ask pause>

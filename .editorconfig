@@ -2,17 +2,14 @@ root = true
 
 [*]
 end_of_line = lf
-insert_final_newline = true
 charset = utf-8
 trim_trailing_whitespace = true
+insert_final_newline = true
 
-[*.{md,toosimple}]
-trim_trailing_whitespace = false
-
-[*.cs]
+[*.{cs,json}]
 indent_style = tab
 
-[*.{csproj,slnx,yml}]
+[*.{csproj,props,slnx,yml}]
 indent_style = space
 indent_size = 2
 

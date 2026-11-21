@@ -1,0 +1,9 @@
+#!/usr/bin/env tssl
+
+!TooSimpleScriptingLanguage 0.6
+
+# https://tssl.yarb00.dev
+
+print line> Hello, world!
+
+# Lines starting with "#" are comments. They are ignored by the interpreter.
