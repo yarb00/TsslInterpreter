@@ -17,9 +17,9 @@ internal static partial class StringExtensions
 
 		public bool IsEmptyOrWhitespace => string.IsNullOrWhiteSpace(@string);
 
-		public bool IsValidLanguageIdentifier => GetValidLanguageIdentifierRegex().IsMatch(@string);
+		public bool IsValidLanguageIdentifier => !@string.IsEmptyOrWhitespace && GetValidLanguageIdentifierRegex().IsMatch(@string);
 
-		public string LanguageTrim() => @string.Trim(' ', '\t', '\r', '\n');
+		public string LanguageTrim() => @string.Trim(' ', '\t');
 	}
 
 	[GeneratedRegex("^[A-Za-z0-9_ ]+$")]
