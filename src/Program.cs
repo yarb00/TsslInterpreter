@@ -116,7 +116,7 @@ internal static class Program
 			Console.WriteLine();
 			Console.WriteLine(new string('=', title.Length));
 
-			if (exitCode is 0) Console.Write($"{FriendlyName} exited");
+			if (exitCode is 0 or null) Console.Write($"{FriendlyName} exited");
 			else Console.Write($"{FriendlyName} exited with code {exitCode}");
 
 			if (message is null) Console.WriteLine('.');
@@ -239,6 +239,7 @@ internal static class Program
 
 			If you know what you're doing, here are advanced details:
 			{e}
+			{new string('=', title.Length)}
 			""", exitCode: null);
 	}
 }

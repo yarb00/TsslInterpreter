@@ -31,7 +31,8 @@ internal enum ScriptError
 	LanguageVersionAlreadySet,
 
 	// Commands
-	UnknownCommandCalled,
+	UnknownBuiltInCommandCalled,
+	UnknownUserDefinedCommandCalled,
 	UnknownConditionCalled,
 	UnknownSignatureCalled,
 	InvalidArgumentsPassed,
@@ -78,7 +79,8 @@ internal sealed class InvalidScriptException(int line, ScriptError reason = Scri
 		[ScriptError.LanguageVersionAlreadySet] = "Language version is already set. Only one language version declaration (`!TooSimpleScriptingLanguage VERSION`) can be present in the script.",
 
 		// Commands
-		[ScriptError.UnknownCommandCalled] = "The specified command does not exist.",
+		[ScriptError.UnknownBuiltInCommandCalled] = "The specified command does not exist.",
+		[ScriptError.UnknownUserDefinedCommandCalled] = "The specified command does not exist.",
 		[ScriptError.UnknownConditionCalled] = "The specified condition does not exist.",
 		[ScriptError.UnknownSignatureCalled] = "No signatures of the specified command match the passed argument count.",
 		[ScriptError.InvalidArgumentsPassed] = "The passed arguments are invalid for the called command.",
@@ -96,4 +98,39 @@ internal sealed class InvalidScriptException(int line, ScriptError reason = Scri
 		[ScriptError.UnknownEscapeSequence] = "The specified escape sequence does not exist.",
 		[ScriptError.InterpolationNotClosed] = "The string interpolation (`\\(`) expression is not closed with a matching right parenthesis.",
 	}.ToFrozenDictionary();
+
+	// Invalid syntax
+	public static InvalidScriptException InvalidSyntax(int line, string details) => new(line, ScriptError.InvalidSyntax, details);
+	public static InvalidScriptException InvalidIdentifierName(int line, string identifier) => new(line, ScriptError.InvalidIdentifierName, $"`{identifier}` is not a valid identifier name.");
+	public static InvalidScriptException LastArgumentNotClosed(int line) => new(line, ScriptError.LastArgumentNotClosed);
+
+	// Invalid blocks
+	public static InvalidScriptException NestedCommandDefined(int line, string outerCommandName, string nestedCommandName) => new(line, ScriptError.NestedCommandDefined, $"The command `{nestedCommandName}` is defined inside `{outerCommandName}`.");
+	public static InvalidScriptException CommandFallenThrough(int line, string commandName, string? lastCalledCommand) => new(line, ScriptError.CommandFallenThrough, lastCalledCommand is null ? $"The body of the command `{commandName}` is empty." : $"The command `{commandName}` calls `{lastCalledCommand}` before ending.");
+	public static InvalidScriptException BlockNotClosed(int line, string openingCommandName) => new(line, ScriptError.BlockNotClosed, $"The block `{openingCommandName}` is not closed.");
+
+	// Language version declaration
+	public static InvalidScriptException LanguageVersionNotSet() => new(-1, ScriptError.LanguageVersionNotSet);
+	public static InvalidScriptException LanguageVersionSetTooLate(int line) => new(line, ScriptError.LanguageVersionSetTooLate);
+	public static InvalidScriptException LanguageVersionAlreadySet(int line, int previousLine) => new(line, ScriptError.LanguageVersionAlreadySet, $"The language version was already set at line {previousLine}.");
+
+	// Commands
+	public static InvalidScriptException UnknownBuiltInCommandCalled(int line, string commandName) => new(line, ScriptError.UnknownBuiltInCommandCalled, $"No command named `{commandName}` exists.");
+	public static InvalidScriptException UnknownUserDefinedCommandCalled(int line, string commandName) => new(line, ScriptError.UnknownUserDefinedCommandCalled, $"No command named `my {commandName}` exists. Did you forget to define this command with `command> {commandName};`?");
+	public static InvalidScriptException UnknownConditionCalled(int line, string conditionName) => new(line, ScriptError.UnknownConditionCalled, $"No condition named `{conditionName}` exists.");
+	public static InvalidScriptException UnknownSignatureCalled(int line, string commandName, int argumentCount) => new(line, ScriptError.UnknownSignatureCalled, $"The command `{commandName}` does not accept {argumentCount} arguments. See its documentation for more information.");
+	public static InvalidScriptException InvalidArgumentsPassed(int line, string commandName, string details) => new(line, ScriptError.InvalidArgumentsPassed, $"The passed arguments are invalid for the command `{commandName}`: {details}");
+	public static InvalidScriptException CommandAlreadyDefined(int line, string commandName, int previousLine) => new(line, ScriptError.CommandAlreadyDefined, $"`command> {commandName};` was already called on line {previousLine}.");
+
+	// Variables
+	public static InvalidScriptException UnknownVariableExpanded(int line, string variableName) => new(line, ScriptError.UnknownVariableExpanded, $"No variable named `{variableName}` exists.");
+	public static InvalidScriptException ProtectedVariableSet(int line, string variableName) => new(line, ScriptError.ProtectedVariableSet, $"Cannot set the variable `{variableName}`: names starting with an underscore are reserved.");
+
+	// Labels
+	public static InvalidScriptException UnknownLabelJumpedTo(int line, string labelName) => new(line, ScriptError.UnknownLabelJumpedTo, $"No label named `{labelName}` exists.");
+	public static InvalidScriptException LabelAlreadyDefined(int line, string labelName, int previousLine) => new(line, ScriptError.LabelAlreadyDefined, $"The label was already defined (`@{labelName}`) on line {previousLine}.");
+
+	// Strings
+	public static InvalidScriptException UnknownEscapeSequence(int line, string escapeSequence) => new(line, ScriptError.UnknownEscapeSequence, $"Escape sequence `\\{escapeSequence}` does not exist.");
+	public static InvalidScriptException InterpolationNotClosed(int line) => new(line, ScriptError.InterpolationNotClosed);
 }

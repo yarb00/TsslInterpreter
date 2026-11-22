@@ -9,8 +9,6 @@ using System;
 using System.Collections;
 using System.Collections.Generic;
 using System.Collections.Immutable;
-using System.Diagnostics;
-using System.Diagnostics.CodeAnalysis;
 using System.Runtime.CompilerServices;
 
 namespace TsslInterpreter;
@@ -19,28 +17,22 @@ internal readonly record struct LanguageStringInterpolation(params LanguageStrin
 
 internal readonly union LanguageStringAtom(string, LanguageStringInterpolation)
 {
-	public readonly bool TryCalculate(IReadOnlyDictionary<string, string> variables, [NotNullWhen(true)] out string? result)
+	public readonly string Calculate(int line, IReadOnlyDictionary<string, string> variables)
 	{
 		switch (this)
 		{
 			// default(LanguageStringAtom) should be an empty string
-			case null:
-				result = string.Empty;
-				return true;
+			case null: return string.Empty;
 
-			case string @string:
-				result = @string;
-				return true;
+			case string @string: return @string;
 
 			case LanguageStringInterpolation interpolation:
 				// default(LanguageStringInterpolation) should be invalid
-				if (interpolation.VariableName.TryCalculate(variables, out string? variableName) && variableName.IsValidLanguageIdentifier)
-					return variables.TryGetValue(variableName.LanguageTrim(), out result);
-				result = null;
-				return false;
+				string variableName = interpolation.VariableName.Calculate(line, variables);
+				if (!variableName.IsValidLanguageIdentifier) throw InvalidScriptException.InvalidIdentifierName(line, variableName);
+				if (!variables.TryGetValue(variableName.LanguageTrim(), out string? variableValue)) throw InvalidScriptException.UnknownVariableExpanded(line, variableName);
+				return variableValue;
 		}
-
-		throw new UnreachableException("Union value is invalid.");
 	}
 }
 
@@ -57,25 +49,16 @@ internal readonly struct LanguageString(params ReadOnlySpan<LanguageStringAtom> 
 
 	public static LanguageString Create(params ReadOnlySpan<LanguageStringAtom> atoms) => new(atoms);
 
-	public readonly bool TryCalculate(IReadOnlyDictionary<string, string> variables, [NotNullWhen(true)] out string? result)
+	public readonly string Calculate(int line, IReadOnlyDictionary<string, string> variables)
 	{
-		result = string.Empty;
-
 		// default(LanguageString) and [] should be an empty string
-		if (atoms.IsDefaultOrEmpty) return true;
+		if (atoms.IsDefaultOrEmpty) return string.Empty;
 
-		foreach (LanguageStringAtom atom in atoms)
-		{
-			if (!atom.TryCalculate(variables, out string? @string))
-			{
-				result = null;
-				return false;
-			}
+		string result = string.Empty;
 
-			result += @string;
-		}
+		foreach (LanguageStringAtom atom in atoms) result += atom.Calculate(line, variables);
 
-		return true;
+		return result;
 	}
 
 	IEnumerator<LanguageStringAtom> IEnumerable<LanguageStringAtom>.GetEnumerator() => ((IEnumerable<LanguageStringAtom>)atoms).GetEnumerator();
