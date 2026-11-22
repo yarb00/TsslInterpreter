@@ -48,6 +48,7 @@ internal enum ScriptError
 
 	// Strings
 	UnknownEscapeSequence,
+	InvalidStringInterpolation,
 	InterpolationNotClosed,
 }
 
@@ -96,6 +97,7 @@ internal sealed class InvalidScriptException(int line, ScriptError reason = Scri
 
 		// Strings
 		[ScriptError.UnknownEscapeSequence] = "The specified escape sequence does not exist.",
+		[ScriptError.InvalidStringInterpolation] = "The string interpolation expression is invalid: they can only contain valid identifiers and nested interpolation expressions. Other characters, including escape sequences, are not allowed.",
 		[ScriptError.InterpolationNotClosed] = "The string interpolation (`\\(`) expression is not closed with a matching right parenthesis.",
 	}.ToFrozenDictionary();
 
@@ -132,5 +134,6 @@ internal sealed class InvalidScriptException(int line, ScriptError reason = Scri
 
 	// Strings
 	public static InvalidScriptException UnknownEscapeSequence(int line, string escapeSequence) => new(line, ScriptError.UnknownEscapeSequence, $"Escape sequence `\\{escapeSequence}` does not exist.");
+	public static InvalidScriptException InvalidStringInterpolation(int line) => new(line, ScriptError.InvalidStringInterpolation);
 	public static InvalidScriptException InterpolationNotClosed(int line) => new(line, ScriptError.InterpolationNotClosed);
 }

@@ -11,6 +11,7 @@ using System.Collections.Generic;
 using System.Diagnostics;
 using System.Diagnostics.CodeAnalysis;
 using System.IO;
+using System.Linq;
 using System.Reflection;
 using System.Runtime.InteropServices;
 using System.Text;
@@ -191,10 +192,10 @@ internal static class Program
 
 	private static async Task ExecuteScriptFromFileAsync(string filePath)
 	{
-		string[] codeLines;
+		string[] sourceLines;
 		try
 		{
-			codeLines = await File.ReadAllLinesAsync(filePath, Encoding.UTF8);
+			sourceLines = await File.ReadAllLinesAsync(filePath, Encoding.UTF8);
 		}
 		catch
 		{
@@ -202,9 +203,25 @@ internal static class Program
 			return;
 		}
 
-		if (codeLines.Length == 0) Panic(ProgramError.EmptyScriptFile);
+		if (sourceLines.Length == 0) Panic(ProgramError.EmptyScriptFile);
 
-		new ScriptEnvironment(codeLines).ExecuteScript();
+		// TEMPORARY TEST
+		Script script = Script.ParseFromLines(sourceLines);
+		Console.WriteLine($"Language version: `{script.LanguageVersion}`");
+		Console.WriteLine($"Total lines: {script.TotalSourceLines}");
+		Console.WriteLine($"Labels:");
+		foreach ((string label, int index) in script.InstructionIndexByLabel) Console.WriteLine($"\tLabel `{label}` -> Instruction {index}");
+		Console.WriteLine($"Instructions:");
+		foreach ((int index, LanguageInstruction instruction) in script.Instructions.Index())
+		{
+			Console.WriteLine($"\tInstruction {index}: {instruction}");
+			Console.WriteLine($"\t\tSource line: {instruction.SourceLine}");
+			Console.WriteLine($"\t\tCommand name: {instruction.CommandName}");
+			Console.WriteLine($"\t\tIs a user-defined command call: {instruction.IsUserDefinedCommand}");
+			Console.WriteLine($"\t\tIf yes, user-defined command name: {instruction.UserDefinedCommandName ?? "null"}");
+			Console.WriteLine($"\t\tArguments:");
+			foreach ((int index2, LanguageString sstr) in instruction.CommandArguments.Index()) Console.WriteLine($"\t\t\tArgument {index2}: {sstr}");
+		}
 	}
 
 	private static void ReportUnhandledException(Exception e)

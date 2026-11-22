@@ -17,6 +17,8 @@ internal readonly record struct LanguageStringInterpolation(params LanguageStrin
 
 internal readonly union LanguageStringAtom(string, LanguageStringInterpolation)
 {
+	public static implicit operator LanguageStringAtom(char character) => character.ToString();
+
 	public readonly string Calculate(int line, IReadOnlyDictionary<string, string> variables)
 	{
 		switch (this)
@@ -47,6 +49,8 @@ internal readonly struct LanguageString(params ReadOnlySpan<LanguageStringAtom> 
 
 	public static implicit operator LanguageString(string @string) => new(@string);
 
+	public static implicit operator LanguageString(char character) => new(character);
+
 	public static LanguageString Create(params ReadOnlySpan<LanguageStringAtom> atoms) => new(atoms);
 
 	public readonly string Calculate(int line, IReadOnlyDictionary<string, string> variables)
@@ -57,6 +61,23 @@ internal readonly struct LanguageString(params ReadOnlySpan<LanguageStringAtom> 
 		string result = string.Empty;
 
 		foreach (LanguageStringAtom atom in atoms) result += atom.Calculate(line, variables);
+
+		return result;
+	}
+
+	public override readonly string ToString()
+	{
+		// default(LanguageString) and [] should be an empty string
+		if (atoms.IsDefaultOrEmpty) return string.Empty;
+
+		string result = string.Empty;
+
+		foreach (LanguageStringAtom atom in atoms) result += atom switch
+		{
+			null => string.Empty,
+			string @string => @string.Replace(@"\", @"\\").Replace(@";", @"\;"),
+			LanguageStringInterpolation interpolation => $"\\({interpolation.VariableName})",
+		};
 
 		return result;
 	}

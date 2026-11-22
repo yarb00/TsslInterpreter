@@ -20,6 +20,8 @@ internal static partial class StringExtensions
 		public bool IsValidLanguageIdentifier => !@string.IsEmptyOrWhitespace && GetValidLanguageIdentifierRegex().IsMatch(@string);
 
 		public string LanguageTrim() => @string.Trim(' ', '\t');
+		public string LanguageTrimStart() => @string.TrimStart(' ', '\t');
+		public string LanguageTrimEnd() => @string.TrimEnd(' ', '\t');
 	}
 
 	[GeneratedRegex("^[A-Za-z0-9_ ]+$")]
