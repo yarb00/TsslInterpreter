@@ -10,6 +10,7 @@ using System.Collections.Frozen;
 using System.Collections.Generic;
 using System.Diagnostics;
 using System.Linq;
+using System.Text;
 
 namespace TsslInterpreter;
 
@@ -31,6 +32,10 @@ internal readonly record struct LanguageInstruction(string CommandName, Language
 
 internal readonly record struct Script(string LanguageVersion, LanguageInstruction[] Instructions, FrozenDictionary<string, int> InstructionIndexByLabel, int TotalSourceLines)
 {
+	private static readonly string[] supportedLanguageVersions = ["0.7"];
+
+	private static readonly string[] deprecatedLanguageVersions = ["0.2", "0.3", "0.4", "0.5", "0.6"];
+
 	private enum ArgumentParsingState
 	{
 		JustStarted,
@@ -70,7 +75,11 @@ internal readonly record struct Script(string LanguageVersion, LanguageInstructi
 
 				if (version.IsEmpty) throw InvalidScriptException.InvalidSyntax(index + 1, $"A valid language version declaration must be in format `!TooSimpleScriptingLanguage VERSION`, but the script declares: `{line}`.");
 
-				versionDeclaration = (version, index + 1);
+				if (line[header.Length] != ' ') throw InvalidScriptException.InvalidSyntax(index + 1, $"A single space is required after `{header}` in the language version declaration, but the script declares: `{line}`.");
+
+				if (supportedLanguageVersions.Contains(version, StringComparer.OrdinalIgnoreCase)) versionDeclaration = (version, index + 1);
+				else if (deprecatedLanguageVersions.Contains(version, StringComparer.OrdinalIgnoreCase)) throw InvalidScriptException.DeprecatedLanguageVersion(index + 1, version);
+				else throw InvalidScriptException.UnknownLanguageVersion(index + 1, version);
 
 				continue;
 			}
@@ -119,6 +128,39 @@ internal readonly record struct Script(string LanguageVersion, LanguageInstructi
 		if (versionDeclaration is null) throw InvalidScriptException.LanguageVersionNotSet();
 
 		return new(versionDeclaration.Value.LanguageVersion, [.. instructions], instructionIndexByLabel.ToFrozenDictionary(), sourceLines.Length);
+	}
+
+	public readonly string GetTreeFormatting()
+	{
+		StringBuilder builder = new();
+
+		builder.AppendLine($"Script version `{LanguageVersion}`:");
+
+		builder.AppendLine("\tLabels:");
+		if (InstructionIndexByLabel.Count == 0) builder.AppendLine("\t\t<none>");
+		else foreach ((string label, int index) in InstructionIndexByLabel)
+		{
+			if (index == -1) builder.AppendLine($"\t\tLabel `{label}`: Instruction <none>");
+			else builder.AppendLine($"\t\tLabel `{label}`: Instruction {index}");
+		}
+
+		builder.AppendLine("\tInstructions:");
+		if (Instructions.Length == 0) builder.AppendLine("\t\t<none>");
+		else foreach ((int index, LanguageInstruction instruction) in Instructions.Index())
+		{
+			builder.AppendLine($"\t\tInstruction {index}:");
+			builder.AppendLine($"\t\t\tSource line: Line {instruction.SourceLine}");
+			builder.AppendLine($"\t\t\tCommand name: `{instruction.CommandName}`");
+			builder.AppendLine($"\t\t\tIs a user-defined command: {(instruction.IsUserDefinedCommand ? "Yes" : "No")}");
+			builder.AppendLine($"\t\t\tIf yes, user-defined command name: {(instruction.UserDefinedCommandName is null ? "<none>" : $"`{instruction.UserDefinedCommandName}`")}");
+			builder.AppendLine($"\t\t\tArguments:");
+			if (instruction.CommandArguments.Length == 0) builder.AppendLine("\t\t\t\t<none>");
+			else foreach ((int argumentIndex, LanguageString argument) in instruction.CommandArguments.Index()) builder.AppendLine($"\t\t\t\tArgument {argumentIndex}: {argument}");
+		}
+
+		builder.AppendLine($"End of script at line {TotalSourceLines}.");
+
+		return builder.ToString();
 	}
 
 	private static LanguageString[] ParseArguments(int lineIndex, string rest)

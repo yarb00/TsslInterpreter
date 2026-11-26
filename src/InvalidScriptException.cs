@@ -29,6 +29,8 @@ internal enum ScriptError
 	LanguageVersionNotSet,
 	LanguageVersionSetTooLate,
 	LanguageVersionAlreadySet,
+	UnknownLanguageVersion,
+	DeprecatedLanguageVersion,
 
 	// Commands
 	UnknownBuiltInCommandCalled,
@@ -75,9 +77,11 @@ internal sealed class InvalidScriptException(int line, ScriptError reason = Scri
 		[ScriptError.BlockNotClosed] = "The block is not closed. `command> NAME;`, `if ...> ...;` and `while ...> ...;` must have a matching `end command>`, `end if>` or `end while>` instruction, respectively.",
 
 		// Language version declaration
-		[ScriptError.LanguageVersionNotSet] = "A language version declaration (`!TooSimpleScriptingLanguage VERSION`) must be present in any script as a first non-comment line.",
+		[ScriptError.LanguageVersionNotSet] = "A language version declaration (`!TooSimpleScriptingLanguage VERSION`) must be present in all scripts as a first non-comment line.",
 		[ScriptError.LanguageVersionSetTooLate] = "Only comments (lines starting with `#`) can be present before the language version declaration (`!TooSimpleScriptingLanguage VERSION`).",
 		[ScriptError.LanguageVersionAlreadySet] = "Language version is already set. Only one language version declaration (`!TooSimpleScriptingLanguage VERSION`) can be present in the script.",
+		[ScriptError.UnknownLanguageVersion] = "The specified language version is not supported.",
+		[ScriptError.DeprecatedLanguageVersion] = "The specified language version is no longer supported.",
 
 		// Commands
 		[ScriptError.UnknownBuiltInCommandCalled] = "The specified command does not exist.",
@@ -115,6 +119,8 @@ internal sealed class InvalidScriptException(int line, ScriptError reason = Scri
 	public static InvalidScriptException LanguageVersionNotSet() => new(-1, ScriptError.LanguageVersionNotSet);
 	public static InvalidScriptException LanguageVersionSetTooLate(int line) => new(line, ScriptError.LanguageVersionSetTooLate);
 	public static InvalidScriptException LanguageVersionAlreadySet(int line, int previousLine) => new(line, ScriptError.LanguageVersionAlreadySet, $"The language version was already set at line {previousLine}.");
+	public static InvalidScriptException UnknownLanguageVersion(int line, string languageVersion) => new(line, ScriptError.UnknownLanguageVersion, $"Unknown language version: `{languageVersion}`.");
+	public static InvalidScriptException DeprecatedLanguageVersion(int line, string languageVersion) => new(line, ScriptError.DeprecatedLanguageVersion, $"Unknown language version: `{languageVersion}`.");
 
 	// Commands
 	public static InvalidScriptException UnknownBuiltInCommandCalled(int line, string commandName) => new(line, ScriptError.UnknownBuiltInCommandCalled, $"No command named `{commandName}` exists.");

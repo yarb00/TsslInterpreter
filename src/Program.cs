@@ -11,7 +11,6 @@ using System.Collections.Generic;
 using System.Diagnostics;
 using System.Diagnostics.CodeAnalysis;
 using System.IO;
-using System.Linq;
 using System.Reflection;
 using System.Runtime.InteropServices;
 using System.Text;
@@ -25,8 +24,6 @@ internal enum ProgramError
 	InvalidCliArguments,
 	ScriptFileReadingFailed,
 	EmptyScriptFile,
-	UnknownLanguageVersion,
-	DeprecatedLanguageVersion,
 	InvalidScript,
 }
 
@@ -62,8 +59,6 @@ internal static class Program
 		[ProgramError.InvalidCliArguments] = "Received arguments are invalid.",
 		[ProgramError.ScriptFileReadingFailed] = "An error occurred while reading the script file.",
 		[ProgramError.EmptyScriptFile] = "The script file is empty.",
-		[ProgramError.UnknownLanguageVersion] = "The language version specified in the script is not supported by this version of interpreter.",
-		[ProgramError.DeprecatedLanguageVersion] = "The language version specified in the script is no longer supported.",
 	}.ToFrozenDictionary();
 
 	public static async Task Main(string[] args)
@@ -77,26 +72,27 @@ internal static class Program
 			TaskScheduler.UnobservedTaskException += static (_, e) => ReportUnhandledException(e.Exception);
 		}
 
-		if (args.Length != 1)
+		switch (args)
 		{
-			PrintUsage();
-			Panic(ProgramError.InvalidCliArguments);
-		}
+			case ["--help"] or ["-h"]: PrintUsage(); break;
 
-		switch (args[0])
-		{
-			case "--help" or "-h": PrintUsage(); break;
+			case [_, "--parse-only"] or [_, "-p"]: Console.WriteLine((await ParseScriptFromFileAsync(args[0])).GetTreeFormatting()); break;
 
-			case "--check-updates" or "-u": await CheckForUpdatesAsync(); break;
+			case ["--check-updates"] or ["-u"]: await CheckForUpdatesAsync(); break;
 
-			case "--version" or "-v": Console.WriteLine(FullVersion); break;
+			case ["--version"] or ["-v"]: Console.WriteLine(FullVersion); break;
 
-			case ['-', ..]:
+			case [['-', .. string rest]]:
 				PrintUsage();
-				Panic(ProgramError.InvalidCliArguments, $"Option \"{args[0]}\" does not exist.");
+				Panic(ProgramError.InvalidCliArguments, $"Invalid option `-{rest}`.");
 				break;
 
-			default: await ExecuteScriptFromFileAsync(args[0]); break;
+			case [string filePath]: await ExecuteScriptFromFileAsync(filePath); break;
+
+			default:
+				PrintUsage();
+				Panic(ProgramError.InvalidCliArguments);
+				break;
 		}
 	}
 
@@ -148,14 +144,17 @@ internal static class Program
 				Run a script file (*.toosimple):
 					{prefix}<path>
 				Print this text (usage):
-					{prefix}--help
 					{prefix}-h
+					{prefix}--help
+				Parse a script file (*.toosimple) and print its syntax structure:
+					{prefix}<path> -p
+					{prefix}<path> --parse-only
 				Check for updates (THIS OPTION WILL CONTACT THE UPDATE SERVER BY DEFAULT!):
-					{prefix}--check-updates
 					{prefix}-u
+					{prefix}--check-updates
 				Print the version of {FriendlyName}:
-					{prefix}--version
 					{prefix}-v
+					{prefix}--version
 
 			Visit {Website} for more information.
 
@@ -192,6 +191,13 @@ internal static class Program
 
 	private static async Task ExecuteScriptFromFileAsync(string filePath)
 	{
+		Script script = await ParseScriptFromFileAsync(filePath);
+
+		throw new NotImplementedException();
+	}
+
+	private static async Task<Script> ParseScriptFromFileAsync(string filePath)
+	{
 		string[] sourceLines;
 		try
 		{
@@ -200,28 +206,43 @@ internal static class Program
 		catch
 		{
 			Panic(ProgramError.ScriptFileReadingFailed);
-			return;
+			throw;
 		}
 
 		if (sourceLines.Length == 0) Panic(ProgramError.EmptyScriptFile);
 
-		// TEMPORARY TEST
-		Script script = Script.ParseFromLines(sourceLines);
-		Console.WriteLine($"Language version: `{script.LanguageVersion}`");
-		Console.WriteLine($"Total lines: {script.TotalSourceLines}");
-		Console.WriteLine($"Labels:");
-		foreach ((string label, int index) in script.InstructionIndexByLabel) Console.WriteLine($"\tLabel `{label}` -> Instruction {index}");
-		Console.WriteLine($"Instructions:");
-		foreach ((int index, LanguageInstruction instruction) in script.Instructions.Index())
+		Script script;
+		try
 		{
-			Console.WriteLine($"\tInstruction {index}: {instruction}");
-			Console.WriteLine($"\t\tSource line: {instruction.SourceLine}");
-			Console.WriteLine($"\t\tCommand name: {instruction.CommandName}");
-			Console.WriteLine($"\t\tIs a user-defined command call: {instruction.IsUserDefinedCommand}");
-			Console.WriteLine($"\t\tIf yes, user-defined command name: {instruction.UserDefinedCommandName ?? "null"}");
-			Console.WriteLine($"\t\tArguments:");
-			foreach ((int index2, LanguageString sstr) in instruction.CommandArguments.Index()) Console.WriteLine($"\t\t\tArgument {index2}: {sstr}");
+			script = Script.ParseFromLines(sourceLines);
 		}
+		catch (InvalidScriptException e)
+		{
+			ReportScriptError(e);
+			throw;
+		}
+
+		return script;
+	}
+
+	private static void ReportScriptError(InvalidScriptException exception)
+	{
+		StringBuilder builder = new();
+
+		builder.AppendLine();
+
+		if (exception.Line == -1) builder.AppendLine("= Script error: =");
+		else builder.AppendLine($"= Error on line {exception.Line}: =");
+
+		builder.AppendLine(exception.Message);
+
+		if (exception.Details is not null) builder.AppendLine($"""
+
+			= Details: =
+			{exception.Details}
+			""");
+
+		Panic(ProgramError.InvalidScript, builder.ToString());
 	}
 
 	private static void ReportUnhandledException(Exception e)
