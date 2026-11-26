@@ -1,0 +1,93 @@
+#!/usr/bin/env tssl
+# https://tssl.yarb00.dev
+# SPDX-FileCopyrightText: yarb00 <https://www.yarb00.dev>
+# SPDX-License-Identifier: CC0-1.0
+
+!TooSimpleScriptingLanguage 0.7
+
+# This file is not a valid TSSL script and will not run. It's a list of all built-in conditions and their signatures.
+# The interpreter will throw an error if you try to run this script.
+
+# Conditions are applied to `if` and `while` as `if CONDITION> ...ARGUMENTS...;` and `while CONDITION> ...ARGUMENTS...;`.
+# Any condition can be prefixed with `not` to invert its result.
+
+# equals: FIRST; SECOND;
+if equals> FIRST; SECOND;
+while equals> FIRST; SECOND;
+if not equals> FIRST; SECOND;
+while not equals> FIRST; SECOND;
+## DESCRIPTION ##
+# Returns whether `FIRST` is the exact same string as `SECOND`, byte for byte (case- and whitespace-sensitive).
+## ARGUMENTS ##
+# FIRST: the first string.
+# SECOND: the second string.
+## END ##
+
+# exists: VARIABLE NAME;
+if exists> VARIABLE NAME;
+while exists> VARIABLE NAME;
+if not exists> VARIABLE NAME;
+while not exists> VARIABLE NAME;
+## DESCRIPTION ##
+# Returns whether the variable named `VARIABLE NAME` (trimmed of leading/trailing whitespace and case-insensitive) is set.
+## ARGUMENTS ##
+# VARIABLE NAME: the variable to check.
+## END ##
+
+# greater: FIRST; SECOND;
+if greater> FIRST; SECOND;
+while greater> FIRST; SECOND;
+if not greater> FIRST; SECOND;
+while not greater> FIRST; SECOND;
+## DESCRIPTION ##
+# Returns whether the number `FIRST` is greater than the number `SECOND`. Causes a panic if `FIRST` or `SECOND` are not valid numbers.
+## ARGUMENTS ##
+# FIRST: the first number.
+# SECOND: the second number.
+## END ##
+
+# integer: VALUE;
+if integer> VALUE;
+while integer> VALUE;
+if not integer> VALUE;
+while not integer> VALUE;
+## DESCRIPTION ##
+# Returns whether `VALUE` is a valid integer.
+## ARGUMENTS ##
+# VALUE: the string value to check.
+## END ##
+
+# less: FIRST; SECOND;
+if less> FIRST; SECOND;
+while less> FIRST; SECOND;
+if not less> FIRST; SECOND;
+while not less> FIRST; SECOND;
+## DESCRIPTION ##
+# Returns whether the number `FIRST` is less than the number `SECOND`. Causes a panic if `FIRST` or `SECOND` are not valid numbers.
+## ARGUMENTS ##
+# FIRST: the first number.
+# SECOND: the second number.
+## END ##
+
+# matches: TEXT; REGEX;
+if matches> TEXT; REGEX;
+while matches> TEXT; REGEX;
+if not matches> TEXT; REGEX;
+while not matches> TEXT; REGEX;
+## DESCRIPTION ##
+# Returns whether `TEXT` matches `REGEX`. Causes a panic if `REGEX` is not a valid regular expression.
+## ARGUMENTS ##
+# TEXT: the text to test.
+# REGEX: the regular expression to test against.
+## END ##
+
+# number: VALUE;
+if number> VALUE;
+while number> VALUE;
+if not number> VALUE;
+while not number> VALUE;
+## DESCRIPTION ##
+# Returns whether `VALUE` is a valid number.
+## ARGUMENTS ##
+# VALUE: the string value to check.
+## END ##

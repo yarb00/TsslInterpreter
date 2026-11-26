@@ -1,107 +1,122 @@
-// https://tssl.yarb00.dev
+// SPDX-FileCopyrightText: yarb00 <https://www.yarb00.dev>
+// SPDX-License-Identifier: MPL-2.0
+
+// This Source Code Form is subject to the terms of the Mozilla Public
+// License, v. 2.0. If a copy of the MPL was not distributed with this
+// file, You can obtain one at https://mozilla.org/MPL/2.0/.
 
 using System;
 using System.Collections.Frozen;
 using System.Collections.Generic;
 using System.Diagnostics;
+using System.Diagnostics.CodeAnalysis;
 using System.IO;
 using System.Reflection;
 using System.Runtime.InteropServices;
+using System.Text;
 using System.Threading.Tasks;
 
 namespace TsslInterpreter;
 
-internal enum CriticalError
+internal enum ProgramError
 {
 	Unknown = 1,
-	InvalidArguments,
-	FileReadError, EmptyFile,
-	NotSupportedLanguageVersion,
-	InvalidCode
+	InvalidCliArguments,
+	ScriptFileReadingFailed,
+	EmptyScriptFile,
+	InvalidScript,
 }
 
 internal static class Program
 {
 	public const string Name = "TsslInterpreter";
+
 	public const string FriendlyName = "TSSL::Interpreter";
+
 	public const string Website = "https://tssl.yarb00.dev";
-	public const string License = """
-		Copyright (c) 2025-2026 yarb00
 
-		Permission is hereby granted, free of charge, to any person obtaining a copy of this software and associated documentation files (the "Software"), to deal in the Software without restriction, including without limitation the rights to use, copy, modify, merge, publish, distribute, sublicense, and/or sell copies of the Software, and to permit persons to whom the Software is furnished to do so, subject to the following conditions:
+	// The full name of the license, including its version (if applicable) and the word "License".
+	public const string LicenseName = "Mozilla Public License 2.0";
 
-		The above copyright notice and this permission notice shall be included in all copies or substantial portions of the Software.
+	// The webpage that serves the full text of the license and will continue serving it in the future.
+	public const string LicenseUrl = $"{Website}/license/interpreter/v0.7.0+";
 
-		THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
-		"""; // MIT (Expat)
+	public static readonly Version Version = Assembly.GetExecutingAssembly().GetName().Version
+		?? throw new UnreachableException("Assembly version cannot be null.");
 
-	public static readonly Version Version = Assembly.GetExecutingAssembly().GetName().Version ?? throw new UnreachableException("Assembly version can't be null.");
 	public static readonly string FriendlyVersion = Version.ToString(3);
 
-	private const string issueReportUrl = $"{Website}/issue/report/client";
+	public static readonly string FullVersion = Assembly.GetExecutingAssembly().GetCustomAttribute<AssemblyInformationalVersionAttribute>()?.InformationalVersion
+		?? throw new UnreachableException("Assembly informational version cannot be null.");
+
+	private const string issueReportBaseUrl = $"{Website}/issue/report/client";
 
 	private static readonly string title = $"{FriendlyName} v{FriendlyVersion}";
 
-	private static readonly FrozenDictionary<CriticalError, string> messageByErrorType = new Dictionary<CriticalError, string>
+	private static readonly FrozenDictionary<ProgramError, string> messageByError = new Dictionary<ProgramError, string>
 	{
-		[CriticalError.InvalidArguments] = "Received arguments are invalid.",
-		[CriticalError.FileReadError] = "An error occurred while reading the code file. Does it exist? Is it accessible?",
-		[CriticalError.EmptyFile] = "The code file is empty.",
-		[CriticalError.NotSupportedLanguageVersion] = "The TSSL version specified in this script is not supported by this version of interpreter.",
-		[CriticalError.InvalidCode] = "Your code contains an error."
+		[ProgramError.Unknown] = "An error occurred.",
+		[ProgramError.InvalidCliArguments] = "Received arguments are invalid.",
+		[ProgramError.ScriptFileReadingFailed] = "An error occurred while reading the script file.",
+		[ProgramError.EmptyScriptFile] = "The script file is empty.",
 	}.ToFrozenDictionary();
 
-	public static void Main(string[] args)
+	public static async Task Main(string[] args)
 	{
+		Console.InputEncoding = Console.OutputEncoding = Encoding.UTF8;
 		Console.Title = title;
-		Console.CancelKeyPress += (_, _) => Exit(shouldKillProcess: false);
 
 		if (!Debugger.IsAttached)
 		{
-			AppDomain.CurrentDomain.UnhandledException += static (_, e) => HandleUnhandledException((Exception)e.ExceptionObject);
-			TaskScheduler.UnobservedTaskException += static (_, e) => HandleUnhandledException(e.Exception);
+			AppDomain.CurrentDomain.UnhandledException += static (_, e) => ReportUnhandledException((Exception)e.ExceptionObject);
+			TaskScheduler.UnobservedTaskException += static (_, e) => ReportUnhandledException(e.Exception);
 		}
 
-		if (args.Length != 1)
+		switch (args)
 		{
-			PrintUsage();
-			Panic(CriticalError.InvalidArguments);
-		}
+			case ["--help"] or ["-h"]: PrintUsage(); break;
 
-		switch (args[0])
-		{
-			case "--help" or "-h": PrintUsage(); break;
-			case "--license" or "-l": Console.WriteLine(License); break;
-			case "--version" or "-v": Console.WriteLine(FriendlyVersion); break;
-			case "--check-updates" or "-u": CheckUpdates(); break;
+			case [_, "--parse-only"] or [_, "-p"]: Console.WriteLine((await ParseScriptFromFileAsync(args[0])).GetTreeFormatting()); break;
 
-			case { } when args[0].StartsWith("--") || args[0].StartsWith('-'):
+			case ["--check-updates"] or ["-u"]: await CheckForUpdatesAsync(); break;
+
+			case ["--version"] or ["-v"]: Console.WriteLine(FullVersion); break;
+
+			case [['-', .. string rest]]:
 				PrintUsage();
-				Panic(CriticalError.InvalidArguments, $"Option \"{args[0]}\" does not exist.");
+				Panic(ProgramError.InvalidCliArguments, $"Invalid option `-{rest}`.");
 				break;
 
-			default: RunCodeFromFile(args[0]); break;
+			case [string filePath]: await ExecuteScriptFromFileAsync(filePath); break;
+
+			default:
+				PrintUsage();
+				Panic(ProgramError.InvalidCliArguments);
+				break;
 		}
 	}
 
-	public static void Panic(CriticalError error = CriticalError.Unknown, string? message = null)
+	[DoesNotReturn]
+	public static void Panic(ProgramError error = ProgramError.Unknown, string? message = null)
 	{
-		if (message is null && !messageByErrorType.TryGetValue(error, out message)) message = "An error occurred.";
+		if (message is null && !messageByError.TryGetValue(error, out message)) message = messageByError[ProgramError.Unknown];
 
-		Exit(message, (int)error);
+		Exit(message, exitCode: (int)error);
+
+		throw new UnreachableException("Program.Exit will always kill the process if argument exitCode is not null.");
 	}
 
-	public static void Exit(string message = "", int exitCode = 0, bool shouldKillProcess = true)
+	public static void Exit(string? message = null, int? exitCode = 0)
 	{
-		if (!message.IsEmptyOrWhitespace || exitCode != 0)
+		if (message is not null || exitCode is not (0 or null))
 		{
 			Console.WriteLine();
 			Console.WriteLine(new string('=', title.Length));
 
-			if (exitCode == 0) Console.Write($"{FriendlyName} exited");
+			if (exitCode is 0 or null) Console.Write($"{FriendlyName} exited");
 			else Console.Write($"{FriendlyName} exited with code {exitCode}");
 
-			if (message.IsEmptyOrWhitespace) Console.WriteLine('.');
+			if (message is null) Console.WriteLine('.');
 			else
 			{
 				Console.WriteLine(':');
@@ -109,80 +124,128 @@ internal static class Program
 			}
 		}
 
-		if (shouldKillProcess) Environment.Exit(exitCode);
+		if (exitCode is not null) Environment.Exit(exitCode.Value);
 	}
 
 	private static void PrintUsage()
 	{
-		string executableName = Path.GetFileNameWithoutExtension(Environment.ProcessPath) ?? string.Empty;
-		if (!executableName.IsEmpty) executableName += " ";
+		string prefix = Path.GetFileName(Environment.GetCommandLineArgs()[0]);
+
+		if (!prefix.IsEmpty) prefix += " ";
 
 		Console.WriteLine($"""
-				Welcome to {title}. Usage:
-					Run TSSL code from a file:
-						{executableName}<path>
-					Print this text:
-						{executableName}--help
-						{executableName}-h
-					Print {FriendlyName} license:
-						{executableName}--license
-						{executableName}-l
-					Print {FriendlyName} version:
-						{executableName}--version
-						{executableName}-v
-					Check for {FriendlyName} updates:
-						{executableName}--check-updates
-						{executableName}-u
+			 _____
+			|_   _|
+			  | |  <  <  |
+			  |_|   >  > |__
+			[ TOO SIMPLE SCRIPTING LANGUAGE ]
 
-				Visit {Website} for more information.
-				""");
+			Welcome to {title}. Usage:
+				Run a script file (*.toosimple):
+					{prefix}<path>
+				Print this text (usage):
+					{prefix}-h
+					{prefix}--help
+				Parse a script file (*.toosimple) and print its syntax structure:
+					{prefix}<path> -p
+					{prefix}<path> --parse-only
+				Check for updates (THIS OPTION WILL CONTACT THE UPDATE SERVER BY DEFAULT!):
+					{prefix}-u
+					{prefix}--check-updates
+				Print the version of {FriendlyName}:
+					{prefix}-v
+					{prefix}--version
+
+			Visit {Website} for more information.
+
+			The source code of {FriendlyName} is licensed under the {LicenseName}.
+			You should have received a file named "LICENSE.txt" with this executable. It contains the full text of the {LicenseName}.
+			If you do not have this file, you can get the full text of the {LicenseName} online at:
+			{LicenseUrl}
+			""");
 	}
 
-	private static void CheckUpdates()
+	private static async Task CheckForUpdatesAsync()
 	{
 		Console.WriteLine($"Welcome to {title}. Preparing to check for updates.");
 
 		Console.WriteLine(Updater.UpdateDataLocation switch
 		{
-			Updater.DataLocation.Server => "Update data will be fetched from a remote server. To use a local file, set the 'TSSL_INTERPRETER_LOCAL_UPDATE_DATA_PATH' environment variable.",
-			Updater.DataLocation.Local => "Update data will be loaded from a local file. To fetch update data from the server, unset the 'TSSL_INTERPRETER_LOCAL_UPDATE_DATA_PATH' environment variable.",
-			_ => throw new UnreachableException("Update data location value is not valid.")
+			UpdateDataLocation.Server => "Update data will be fetched from a remote server. To use a local file, set the \"TSSL_INTERPRETER_LOCAL_UPDATE_DATA_PATH\" environment variable to the path of the update data file.",
+			UpdateDataLocation.Local => "Update data will be loaded from a local file. To fetch update data from the server, unset the \"TSSL_INTERPRETER_LOCAL_UPDATE_DATA_PATH\" environment variable.",
+			_ => throw new UnreachableException("Update data location is invalid."),
 		});
 
 		Console.WriteLine("Getting the update data...");
 
-		UpdateData updateData = Updater.GetUpdateData().GetAwaiter().GetResult();
+		UpdateData updateData = await Updater.GetUpdateDataAsync();
 
-		// IsUpdateAvailable returns null if update data doesn't contain the version information
-		if (Updater.IsUpdateAvailable(updateData) is false) Console.WriteLine("You're using the latest version!");
+		if (!updateData.IsUpdateAvailable) Console.WriteLine("You're using the latest version!");
 		else Console.WriteLine($"""
-			Version {updateData.LatestVersion?.ToString(3) ?? "[Invalid data]"} is available!
+			Version {updateData.LatestVersion} is available!
 
 			Information about the update:
-			{updateData.DetailsUrl?.ToString() ?? "[Invalid data]"}
+			{updateData.DetailsUrl}
 			""");
 	}
 
-	private static void RunCodeFromFile(string filePath)
+	private static async Task ExecuteScriptFromFileAsync(string filePath)
 	{
-		string[] codeLines;
+		Script script = await ParseScriptFromFileAsync(filePath);
 
+		throw new NotImplementedException();
+	}
+
+	private static async Task<Script> ParseScriptFromFileAsync(string filePath)
+	{
+		string[] sourceLines;
 		try
 		{
-			codeLines = File.ReadAllLines(filePath);
+			sourceLines = await File.ReadAllLinesAsync(filePath, Encoding.UTF8);
 		}
 		catch
 		{
-			Panic(CriticalError.FileReadError);
-			return;
+			Panic(ProgramError.ScriptFileReadingFailed);
+			throw;
 		}
 
-		if (codeLines.Length == 0) Panic(CriticalError.EmptyFile);
+		if (sourceLines.Length == 0) Panic(ProgramError.EmptyScriptFile);
 
-		new ScriptEnvironment(codeLines).ExecuteScript();
+		Script script;
+		try
+		{
+			script = Script.ParseFromLines(sourceLines);
+		}
+		catch (InvalidScriptException e)
+		{
+			ReportScriptError(e);
+			throw;
+		}
+
+		return script;
 	}
 
-	private static void HandleUnhandledException(Exception e)
+	private static void ReportScriptError(InvalidScriptException exception)
+	{
+		StringBuilder builder = new();
+
+		builder.AppendLine();
+
+		if (exception.Line == -1) builder.AppendLine("= Script error: =");
+		else builder.AppendLine($"= Error on line {exception.Line}: =");
+
+		builder.AppendLine(exception.Message);
+
+		if (exception.Details is not null) builder.AppendLine($"""
+
+			= Details: =
+			{exception.Details}
+			""");
+
+		Panic(ProgramError.InvalidScript, builder.ToString());
+	}
+
+	private static void ReportUnhandledException(Exception e)
 	{
 		string
 			issueTitle = $"Unhandled exception: `{e.GetType().Name}`",
@@ -191,7 +254,7 @@ internal static class Program
 
 				## Environment
 
-				**{FriendlyName} version**: `{FriendlyVersion}`
+				**{FriendlyName} version**: `{FullVersion}`
 
 				**OS**: `{RuntimeInformation.OSDescription}`
 
@@ -200,18 +263,21 @@ internal static class Program
 				```
 				{e}
 				```
-				""";
+				""",
+			issueReportUrl = $"{issueReportBaseUrl}?title={Uri.EscapeDataString(issueTitle)}&body={Uri.EscapeDataString(issueBody)}";
 
 		Exit($"""
-			An unhandled exception occurred!
+			An unhandled exception occurred! x_x
 			It's a serious error that should not normally happen.
 
-			Please report it by visiting this URL
-			(report should be already prefilled with details, but please add more information about what you did that crashed the program):
-			{issueReportUrl}?title={Uri.EscapeDataString(issueTitle)}&body={Uri.EscapeDataString(issueBody)}
+			Below is a link that will take you to the official GitHub repository, with Issue's title and body partially prefilled with crash details.
+			Please add more information about what you did that caused {FriendlyName} to crash.
+
+			{issueReportUrl}
 
 			If you know what you're doing, here are advanced details:
 			{e}
-			""", shouldKillProcess: false);
+			{new string('=', title.Length)}
+			""", exitCode: null);
 	}
 }

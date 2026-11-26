@@ -1,0 +1,10 @@
+#!/usr/bin/env tssl
+# https://tssl.yarb00.dev
+# SPDX-FileCopyrightText: yarb00 <https://www.yarb00.dev>
+# SPDX-License-Identifier: CC0-1.0
+
+!TooSimpleScriptingLanguage 0.5
+
+print line> Hello, world!
+
+# Lines starting with "#" are comments. They are ignored by the interpreter.

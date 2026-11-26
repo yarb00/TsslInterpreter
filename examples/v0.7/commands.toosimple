@@ -1,0 +1,485 @@
+#!/usr/bin/env tssl
+# https://tssl.yarb00.dev
+# SPDX-FileCopyrightText: yarb00 <https://www.yarb00.dev>
+# SPDX-License-Identifier: CC0-1.0
+
+!TooSimpleScriptingLanguage 0.7
+
+# This file is not a valid TSSL script and will not run. It's a list of all built-in commands and their signatures.
+# The interpreter will throw an error if you try to run this script.
+
+add> FIRST; SECOND; RESULT;
+## DESCRIPTION ##
+# Sets the variable `RESULT` to the sum of `FIRST` and `SECOND`.
+## ARGUMENTS ##
+# FIRST: the first addend as a string value.
+# SECOND: the second addend as a string value.
+# RESULT: the name of the variable to write the sum to.
+## USAGE ##
+	print> Enter a number: ;
+	ask line> input;
+	add> \(input); -5.55; result;
+	if exists> result;
+		print line> \(input) - 5.55 = \(result);
+	end if>
+	if not exists> result;
+		print line> Invalid input!;
+	end if>
+## DETAILS ##
+# This command parses `FIRST` and `SECOND` as numbers.
+# They are trimmed before parsing, so leading and trailing whitespace is ignored, but whitespace in the middle is invalid.
+# If they are both valid numbers, `RESULT` is set to their sum as a string value. If `FIRST` or `SECOND` is not a valid number, `RESULT` is unset.
+# The result can never overflow, numbers are only limited by the available memory.
+# The result is always normalized: no whitespace, no unary plus, no unnecessary leading/trailing zeros. If the result is just zero, it's written as "0".
+# Examples of valid numbers: "42", "+42", "-42", "42.24", "+42.24", "-42.24", "0000.0000", "+0000.0000", "-0000.0000", "  01.420  ", "  +01.420  ", "  -01.420  ".
+# Examples of invalid numbers: "42.", ".42", "4 2", "42.+24", "42.-24", "oops", "+ 123", "- 123", "abc42cba", "", " ", "1.5e-3", "2/3".
+## END ##
+
+ask line> RESULT;
+## DESCRIPTION ##
+# Sets the variable `RESULT` to the next line of characters from the standard input stream.
+## ARGUMENTS ##
+# RESULT: the name of the variable to write the input to.
+## USAGE ##
+	print> Enter your name: ;
+	ask line> input;
+	print line> Hi, \(input)!;
+## DETAILS ##
+# If no more lines are available (EOF), `RESULT` is unset.
+# You generally don't need to check for that, unless you expect your script to be used with redirected input (or you need to handle CTRL+D/CTRL+Z).
+## END ##
+
+ask pause>
+## DESCRIPTION ##
+# Pauses the execution of the script until a key is pressed by the user.
+## ARGUMENTS ##
+# None.
+## USAGE ##
+	print line> long text the user needs to carefully read blah blah blah;
+	print line> Press any key to continue.;
+	ask pause>
+## DETAILS ##
+# The pressed key is not printed to the terminal.
+# If the standard input stream is redirected, `ask pause>` will immediately return and continue the script execution from the next line.
+## END ##
+
+command> NAME;
+## DESCRIPTION ##
+# Starts a user-defined command definition block.
+## ARGUMENTS ##
+# NAME: the name used to call the command, without the `my` prefix.
+## USAGE ##
+	command> greet;
+		print> Your name: ;
+		ask line> name;
+		print line> Hi, \(name)!;
+		my main menu>
+	end command>
+## DETAILS ##
+# The block is closed by a matching `end command>` call.
+# The contents of the block (all instructions until `end command>`) are not evaluated until the command is actually called.
+# The defined command MUST call one of the following as the last instruction before a closing `end command>`, otherwise the interpreter will panic when calling `end command>`:
+	# stop>
+	# stop> MESSAGE;
+	# jump> LABEL NAME;
+	# another user-defined command (`my ...>`/`my ...> ...;`)
+# Nested command definitions are not allowed. Trying to call `command> ...;` again inside a command definition will cause a panic.
+# Trying to pass the name of an existing user-defined command as `NAME` will cause a panic.
+# (But names of existing built-in commands, like `command> print;`, are fine. Since user-defined commands are called with a `my` prefix, they don't conflict.)
+## END ##
+
+count length> TEXT; RESULT;
+## DESCRIPTION ##
+# Sets the variable `RESULT` to the length of `TEXT`.
+## ARGUMENTS ##
+# TEXT: the text to count the length of.
+# RESULT: the name of the variable to write the length to.
+## USAGE ##
+	print> Enter something: ;
+	ask line> input;
+	count length> \(input); length;
+	print line> You entered \(length) graphemes.;
+## DETAILS ##
+# Length is how many Unicode graphemes `TEXT` contains.
+# This command always sets `RESULT` to a non-negative integer (>= 0). `RESULT` is never unset.
+## END ##
+
+end command>
+## DESCRIPTION ##
+# Ends a matching user-defined command definition block.
+## ARGUMENTS ##
+# None.
+## USAGE ##
+	command> greet;
+		print> Your name: ;
+		ask line> name;
+		print line> Hi, \(name)!;
+		my main menu>
+	end command>
+## DETAILS ##
+# Without a matching `command> NAME;`, `end command>` is a no-op and doesn't do anything.
+## END ##
+
+end if>
+## DESCRIPTION ##
+# Ends a matching condition-testing `if` block.
+## ARGUMENTS ##
+# None.
+## USAGE ##
+	if exists> input;
+		if matches> \(input); ^[yY]$;
+			stop>
+		end if>
+	end if>
+## DETAILS ##
+# Without a matching `if CONDITION> ...;`, `end if>` is a no-op and doesn't do anything.
+## END ##
+
+end while>
+## DESCRIPTION ##
+# Ends a matching `while` loop block.
+## ARGUMENTS ##
+# None.
+## USAGE ##
+	set> input; This text will be discarded.{{PRESERVE}}This text will be preserved.;
+	while exists> input;
+		if matches> \(input); ^.*\\{\\{PRESERVE\\}\\}.*$;
+			while not matches> \(input); ^\\{\\{PRESERVE\\}\\};
+				substring> \(input); 1; ; input;
+			end while>
+			count length> {{PRESERVE}}; length;
+			substring> \(input); \(length); ; input;
+			unset> length;
+		end if>
+		print line> \(input);
+		ask line> input;
+	end while>
+## DETAILS ##
+# Without a matching `while CONDITION> ...;`, `end while>` is a no-op and doesn't do anything.
+## END ##
+
+execute> COMMAND LINE;
+## DESCRIPTION ##
+# Runs the specified executable with the specified arguments in the background.
+## ARGUMENTS ##
+# COMMAND LINE: the executable name/path and its arguments, combined.
+## USAGE ##
+	execute> mv data.bak data.bak.old;
+	execute> /usr/bin/env python3 data;
+	print line> This runs immediately!;
+	if exists> _last_execute_status;
+		print line> An error occurred while trying to start Python: \(_last_execute_status);
+	end if>
+## DETAILS ##
+# After trying to start the process, `execute> COMMAND LINE;` returns immediately and the script execution continues.
+# If the process was started successfully, the global `_last_execute_status` variable is unset.
+# If the process was not started, the global `_last_execute_status` variable is set to the error string.
+# It's impossible to detect when the started process ends and what exit code it returns. For that, use `execute wait> COMMAND LINE;`.
+## END ##
+
+execute wait> COMMAND LINE;
+## DESCRIPTION ##
+# Runs the specified executable with the specified arguments, and pauses the script execution until it exits.
+## ARGUMENTS ##
+# COMMAND LINE: the executable name/path and its arguments, combined.
+## USAGE ##
+	execute wait> mv data.bak data.bak.old;
+	execute wait> mv data data.bak;
+	execute wait> mv new_data data;
+	execute wait> rm data.bak.old;
+	execute wait> /usr/bin/env python3 data;
+	if number> \(_last_execute_status);
+		if equals> \(_last_execute_status); 0;
+			print line> Python exited successfully.;
+		end if>
+		if not equals> \(_last_execute_status); 0;
+			print line> Python exited with \(_last_execute_status).;
+		end if>
+	end if>
+	if not number> \(_last_execute_status);
+		print line> An error occurred while trying to start Python: \(_last_execute_status);
+	end if>
+## DETAILS ##
+# If the process was started successfully, the script execution is paused until it exits, then the global `_last_execute_status` variable is set to its exit code (an integer).
+# If the process was not started, `execute wait> COMMAND LINE;` returns immediately and the global `_last_execute_status` variable is set to the error string.
+# `execute wait> COMMAND LINE;` never unsets `_last_execute_status`. After `execute wait> COMMAND LINE;` returns, `_last_execute_status` is always set.
+## END ##
+
+if CONDITION> ...;
+## DESCRIPTION ##
+# Starts a condition-testing `if` block.
+## ARGUMENTS ##
+# ...: 0 or more arguments, passed to the `CONDITION` tester.
+## USAGE ##
+	if exists> input;
+		if matches> \(input); ^[yY]$;
+			stop>
+		end if>
+	end if>
+## DETAILS ##
+# The block is closed by a matching `end if>` call.
+# If the condition is false, the contents of the block (all instructions until the matching `end if>`) are skipped.
+# Nested `if` blocks are allowed. Calling `end if>` closes only the latest, most inner `if` block.
+# If `CONDITION` does not exist, or the passed arguments are invalid for `CONDITION`, the interpreter will panic.
+## END ##
+
+jump> LABEL NAME;
+## DESCRIPTION ##
+# Continues code execution from the specified label.
+## ARGUMENTS ##
+# LABEL NAME: the name of the label to jump to.
+## USAGE ##
+	jump> after printing;
+	print line> I'm unreachable!;
+	@after printing
+	print line> Hi.;
+## DETAILS ##
+# Causes a panic if the specified label is not defined.
+# When defined, label is attached to the first instruction (command call) after it.
+# If no instructions are present after the label definition, jumping to it acts like a `stop>` call.
+## END ##
+
+print> TEXT;
+## DESCRIPTION ##
+# Writes `TEXT` to the standard output stream as is (without a line break).
+## ARGUMENTS ##
+# TEXT: the text to print.
+## USAGE ##
+	print> Enter your name: ;
+	ask line> input;
+	print line> Hi, \(input)!;
+## DETAILS ##
+# None.
+## END ##
+
+print line>
+## DESCRIPTION ##
+# Writes an empty line (a line break) to the standard output stream.
+## ARGUMENTS ##
+# None.
+## USAGE ##
+	print> First line...;
+	print> Still on the first line...;
+	print line>
+	print> Second line.;
+	print line>
+	print line> Third line.;
+	print> Fourth line.;
+## DETAILS ##
+# None.
+## END ##
+
+print line> TEXT;
+## DESCRIPTION ##
+# Writes `TEXT` to the standard output stream, followed by a line break.
+## ARGUMENTS ##
+# TEXT: the text to print.
+## USAGE ##
+	print> Enter your name: ;
+	ask line> input;
+	print line> Hi, \(input)!;
+## DETAILS ##
+# None.
+## END ##
+
+set> VARIABLE NAME; VALUE;
+## DESCRIPTION ##
+# Sets `VARIABLE NAME` to `VALUE`.
+## ARGUMENTS ##
+# VARIABLE NAME: the name of the variable to set.
+# VALUE: the value to set the variable to.
+## USAGE ##
+	# Output:
+	# Hello, Alice!
+	# Nobody to greet...
+	set> name; Alice;
+	if exists> name;
+		print line> Hello, \(name)!;
+	end if>
+	if not exists> name;
+		print line> Nobody to greet...;
+	end if>
+	unset> name;
+	if exists> name;
+		print line> Hello, \(name)!;
+	end if>
+	if not exists> name;
+		print line> Nobody to greet...;
+	end if>
+## DETAILS ##
+# `VARIABLE NAME` is trimmed of leading and trailing whitespace, so `set>   name   ; Bob;` will set `name`. `VALUE` is preserved as is.
+# Names starting with an underscore are reserved for built-in variables.
+# Trying to pass a name starting with an underscore (after trimming) as `VARIABLE NAME` will cause a panic.
+## END ##
+
+stop>
+## DESCRIPTION ##
+# Stops the script execution successfully.
+## ARGUMENTS ##
+# None.
+## USAGE ##
+	ask line> input;
+	if equals> \(input); quit;
+		stop>
+	end if>
+## DETAILS ##
+# The interpreter will silently exit with no additional output and exit code 0.
+## END ##
+
+stop> REASON;
+## DESCRIPTION ##
+# Causes the interpreter to panic with `REASON`.
+## ARGUMENTS ##
+# REASON: the panic cause.
+## USAGE ##
+	command> calculate;
+		if greater> \(_argument_count); 3;
+			stop> Expected 0, 1, 2 or 3 arguments in "calculate", but got \(_argument_count)!;
+		end if>
+		# ...
+	end command>
+## DETAILS ##
+# The interpreter will print the panic message (`REASON`) along with the line where it occurred, and exit with a non-zero code.
+## END ##
+
+substring> TEXT; START; END; RESULT;
+## DESCRIPTION ##
+# Sets the variable `RESULT` to a substring from `TEXT`.
+## ARGUMENTS ##
+# TEXT: the string to get the substring from.
+# START: the zero-based starting grapheme position of the substring, inclusive.
+# END: the ending grapheme position of the substring, exclusive.
+# RESULT: the name of the variable to write the substring to.
+## USAGE ##
+	# text = "Hello, world"
+	set> text; Hello, world;
+	# hello = "Hello"
+	substring> \(text); ; 5; hello;
+	# world = "world"
+	substring> \(text); 7; ; world;
+	# "Hello world"
+	print line> \(hello) \(world);
+## DETAILS ##
+# `START` and `END` must be valid non-negative integers (after trimming) or empty strings (after trimming), otherwise `RESULT` will be unset.
+# If `START` is an empty string, it defaults to "0". If `END` is an empty string, it defaults to the length of `TEXT`.
+# `substring> a; ; ; b;` has the same result as `set> b; a;`.
+# Indices (positions) work like cursors. `START` is the grapheme before which the cursor will start selection. `END` is the grapheme before which the cursor will stop selection.
+	# result = "world"
+	substring> Hello, world; 7; 12; result;
+	# -02  -01  |--00--01--02--03--04--05--06-[07--08--09--10--11]-|  +12  +13
+	# N/A  N/A  |--H --e --l --l --o --, --  -[w --o --r --l --d ]-|  N/A  N/A
+# If `START` goes out of bounds (greater than the length of `TEXT`), `RESULT` is unset.
+	# result = unset
+	substring> Hello, world; 13; 13; result;
+	# -02  -01  |--00--01--02--03--04--05--06--07--08--09--10--11--|  +12[]+13 ?! cursors can't be placed out of bounds
+	# N/A  N/A  |--H --e --l --l --o --, --  --w --o --r --l --d --|  N/A[]N/A ?! cursors can't be placed out of bounds
+# If `END` goes out of bounds (greater than the length of `TEXT`), it's clamped to the length of `TEXT`.
+	# result = "ld"
+	substring> Hello, world; 10; 100; result;
+	# -02  -01  |--00--01--02--03--04--05--06--07--08--09-[10--11]-|  +12  +13
+	# N/A  N/A  |--H --e --l --l --o --, --  --w --o --r -[l --d ]-|  N/A  N/A
+# If `START` and `END` are the same number (but not greater than the length of `TEXT`), `RESULT` is set to an empty string.
+	# result = ""
+	substring> Hello, world; 12; 12; result;
+	# -02  -01  |--00--01--02--03--04--05--06--07--08--09--10--11[]|  +12  +13
+	# N/A  N/A  |--H --e --l --l --o --, --  --w --o --r --l --d []|  N/A  N/A
+# If `START` is greater than `END`, `RESULT` is unset.
+	# result = unset
+	substring> Hello, world; 10; 7; result;
+	# -02  -01  |--00--01--02--03--04--05--06-]07--08--09-[10--11--|  +12  +13 ?! cursors don't match
+	# N/A  N/A  |--H --e --l --l --o --, --  -]w --o --r -[l --d --|  N/A  N/A ?! cursors don't match
+# The only allowed `START` on an empty string is 0 (since an empty string has no graphemes). And since its length is 0, any passed `END` is clamped to 0, too.
+	# result = ""
+	substring> ; 0; 0; result;
+	# -02  -01  |[]|  +00  +01
+	# N/A  N/A  |[]|  N/A  N/A
+
+	# result = ""
+	substring> ; ; 100; result;
+	# -02  -01  |[]|  +00  +01
+	# N/A  N/A  |[]|  N/A  N/A
+
+	# result = unset
+	substring> ; 1; 1; result;
+	# -02  -01  |--|  +00[]+01 ?! cursors can't be placed out of bounds
+	# N/A  N/A  |--|  N/A[]N/A ?! cursors can't be placed out of bounds
+
+	# result = unset
+	substring> ; 1; ; result;
+	# -02  -01  |-]|  +00 [+01 ?! cursors don't match AND are out of bounds
+	# N/A  N/A  |-]|  N/A [N/A ?! cursors don't match AND are out of bounds
+## END ##
+
+trim whitespace> TEXT; RESULT;
+## DESCRIPTION ##
+# Sets the variable `RESULT` to `TEXT` with leading and trailing whitespace removed.
+## ARGUMENTS ##
+# TEXT: the text to trim.
+# RESULT: the name of the variable to write the trimmed text to.
+## USAGE ##
+	# input = "     t e s t  "
+	ask line> input;
+	# input = "t e s t"
+	trim whitespace> \(input); input;
+	# "t e s t"
+	print line> \(input);
+## DETAILS ##
+# None.
+## END ##
+
+unset> VARIABLE NAME;
+## DESCRIPTION ##
+# Unsets (deletes) `VARIABLE NAME`.
+## ARGUMENTS ##
+# VARIABLE NAME: the name of the variable to unset.
+## USAGE ##
+	# Output:
+	# Hello, Alice!
+	# Nobody to greet...
+	set> name; Alice;
+	if exists> name;
+		print line> Hello, \(name)!;
+	end if>
+	if not exists> name;
+		print line> Nobody to greet...;
+	end if>
+	unset> name;
+	if exists> name;
+		print line> Hello, \(name)!;
+	end if>
+	if not exists> name;
+		print line> Nobody to greet...;
+	end if>
+## DETAILS ##
+# `VARIABLE NAME` is trimmed of leading and trailing whitespace, so `unset>   name   ;` will unset `name`.
+# Names starting with an underscore (reserved for built-in variables) cannot be set, but CAN be unset.
+## END ##
+
+while CONDITION> ...;
+## DESCRIPTION ##
+# Starts a `while` loop block.
+## ARGUMENTS ##
+# ...: 0 or more arguments, passed to the `CONDITION` tester.
+## USAGE ##
+	set> input; This text will be discarded.{{PRESERVE}}This text will be preserved.;
+	while exists> input;
+		if matches> \(input); ^.*\\{\\{PRESERVE\\}\\}.*$;
+			while not matches> \(input); ^\\{\\{PRESERVE\\}\\};
+				substring> \(input); 1; ; input;
+			end while>
+			count length> {{PRESERVE}}; length;
+			substring> \(input); \(length); ; input;
+			unset> length;
+		end if>
+		print line> \(input);
+		ask line> input;
+	end while>
+## DETAILS ##
+# The block is closed by a matching `end while>` call.
+# If the condition is false initially, the contents of the block (all instructions until the matching `end while>`) are skipped.
+# Otherwise, if the condition is true, instructions are executed normally from the next line,
+# until the matching `end while>` is reached, which jumps back to the line with `while`,
+# which causes the interpreter to recheck the condition again and skip/execute the block.
+# Nested `while` blocks are allowed. Calling `end while>` closes only the latest, most inner `while` block.
+# If `CONDITION` does not exist, or the passed arguments are invalid for `CONDITION`, the interpreter will panic.
+## END ##

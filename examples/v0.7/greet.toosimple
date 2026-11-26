@@ -1,0 +1,19 @@
+#!/usr/bin/env tssl
+# https://tssl.yarb00.dev
+# SPDX-FileCopyrightText: yarb00 <https://www.yarb00.dev>
+# SPDX-License-Identifier: CC0-1.0
+
+!TooSimpleScriptingLanguage 0.7
+
+print> Your name: ;
+ask line> name;
+
+print line> \(name)? Welcome!;
+
+print> Your age: ;
+ask line> age;
+
+print line> \(age)? ok :D;
+
+print line> Press any key to exit.;
+ask pause>
